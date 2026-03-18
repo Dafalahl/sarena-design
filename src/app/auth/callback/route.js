@@ -2,18 +2,16 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabaseServer'
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url)
-  const code = searchParams.get('code')
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
   
-  // Use the exact same URL logic as the login page
-  let origin =
-      process?.env?.NEXT_PUBLIC_SITE_URL ?? 
-      process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
-      'http://localhost:3000'
+  // Reliably get the real Vercel production URL from headers
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+  let origin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : requestUrl.origin
   
   // Ensure the origin does not have a trailing slash for redirects
   origin = origin.endsWith('/') ? origin.slice(0, -1) : origin
-  origin = origin.includes('http') ? origin : `https://${origin}`
   
   if (code) {
     const supabase = await createClient()
@@ -47,9 +45,12 @@ export async function GET(request) {
 
       // Redirect to dashboard (or wherever) after successful login
       return NextResponse.redirect(`${origin}/dashboard`)
+    } else if (error) {
+      console.error("Auth callback exchange error:", error.message)
+      return NextResponse.redirect(`${origin}/login?error=auth-failed&reason=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // Return to login if something failed
-  return NextResponse.redirect(`${origin}/login?error=auth-failed`)
+  // Return to login if something failed without an error message
+  return NextResponse.redirect(`${origin}/login?error=no-code`)
 }
