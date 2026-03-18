@@ -41,14 +41,16 @@ export async function POST(request) {
       )
 
       // We update the order status
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({ status: 'escrow', updated_at: new Date().toISOString() })
         .eq('id', orderId)
+        .select()
 
       if (error) {
         console.error("Error updating order status:", error.message)
-        // Note: For production, we should handle RLS via service_role key to ensure webhooks work.
+      } else if (!data || data.length === 0) {
+        console.error(`Silent RLS Failure! 0 rows updated for order ${orderId}. Ensure SUPABASE_SERVICE_ROLE_KEY is perfectly correct in Vercel!`)
       } else {
         console.log(`Successfully updated order ${orderId} to Escrow status!`)
       }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabaseServer'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function POST(request) {
   try {
@@ -91,14 +92,26 @@ export async function POST(request) {
 
     const xenditData = await xenditRes.json()
 
-    // 4. Update the order with Xendit Invoice ID
-    await supabase
+    // 4. Update the order with Xendit Invoice ID using Service Role to bypass RLS
+    // We must use the service role because regular users don't have UPDATE permissions on 'orders'
+    const serviceClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    )
+
+    const { data: updateData, error: updateError } = await serviceClient
       .from('orders')
       .update({
         xendit_invoice_id: xenditData.id,
         xendit_external_id: xenditData.external_id
       })
       .eq('id', order.id)
+      .select()
+
+    if (updateError || !updateData || updateData.length === 0) {
+      console.error("Failed to append Invoice ID. RLS might be blocking it or Service Role Key is missing.")
+    }
 
     // 5. Return the payment link
     return NextResponse.json({ checkout_url: xenditData.invoice_url })
