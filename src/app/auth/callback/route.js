@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabaseServer'
 
 export async function GET(request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  
+  // Use the exact same URL logic as the login page
+  let origin =
+      process?.env?.NEXT_PUBLIC_SITE_URL ?? 
+      process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
+      'http://localhost:3000'
+  
+  // Ensure the origin does not have a trailing slash for redirects
+  origin = origin.endsWith('/') ? origin.slice(0, -1) : origin
+  origin = origin.includes('http') ? origin : `https://${origin}`
   
   if (code) {
     const supabase = await createClient()
