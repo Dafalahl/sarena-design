@@ -24,16 +24,15 @@ export async function POST(request) {
       }
 
       // We need a SERVICE ROLE Supabase client to bypass RLS since webhooks don't have user sessions
-      // Wait, we didn't add SUPABASE_SERVICE_ROLE_KEY to env. 
-      // We will just use the standard client for now, but RLS on orders currently is restrictive.
-      // Wait: `schema.sql` doesn't explicitly allow UPDATE to orders for anon/authenticated without auth.uid()
-      // Let's assume we use regular client but since we are backend, we will need to ensure we can write to it.
-      // If we hit RLS error here, we will need the Service Role Key.
-      // For MVP, if Orders table RLS blocks it, we can temporarily advise the user.
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
       
+      if (!serviceRoleKey) {
+        console.error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing! Webhook cannot bypass RLS to update orders.")
+      }
+
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        serviceRoleKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         {
           auth: {
             persistSession: false,

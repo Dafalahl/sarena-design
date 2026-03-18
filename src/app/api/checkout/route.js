@@ -33,6 +33,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid creator price' }, { status: 400 })
     }
     
+    const feeAmount = Math.floor(priceAmount * 0.10)
+    const totalAmount = priceAmount + feeAmount
+    
     // 2. Create Order in Supabase
     // Using pending status initially
     const { data: order, error: orderError } = await supabase
@@ -40,7 +43,7 @@ export async function POST(request) {
       .insert({
         client_id: user.id,
         creator_id: creatorId,
-        amount: priceAmount,
+        amount: totalAmount,
         status: 'pending'
       })
       .select('id')
@@ -61,7 +64,7 @@ export async function POST(request) {
     
     const invoicePayload = {
       external_id: order.id,
-      amount: priceAmount,
+      amount: totalAmount,
       description: `Commission Payment for ${creatorProfile.users?.full_name} via Sarena Escrow`,
       invoice_duration: 86400, // 24 hours
       customer: {
