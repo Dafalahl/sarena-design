@@ -16,32 +16,30 @@ export async function GET(request) {
       
       const avatarUrl = metadata.avatar_url || metadata.picture || null
       const fullName = metadata.full_name || metadata.name || null
-      const usernameFromGoogle = metadata.preferred_username || metadata.name?.replace(/\s+/g, '').toLowerCase() || \`user_\${user.id.substring(0,8)}\`
+      const usernameFromGoogle = metadata.preferred_username || metadata.name?.replace(/\s+/g, '').toLowerCase() || `user_${user.id.substring(0,8)}`
 
-      // 2. Upsert profile into public.users table
-      // Note: A database trigger is often cleaner, but this explicitly fulfills the request via Next.js backend.
+      // 2. We don't necessarily need to upsert here because we have a Supabase Auth Trigger
+      // that inserts into public.users automatically.
+      // However, we can update the user's avatar_url and full_name just in case it changed.
       if (user.id) {
         const { error: upsertError } = await supabase
           .from('users')
-          .upsert({
-            id: user.id, // Primary Key linked to auth.users
+          .update({
             avatar_url: avatarUrl,
             full_name: fullName,
-            username: usernameFromGoogle,
-            email: user.email,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' })
+          })
+          .eq('id', user.id)
 
         if (upsertError) {
-          console.error("Error upserting user profile:", upsertError.message)
+          console.error("Error updating user details:", upsertError.message)
         }
       }
 
       // Redirect to dashboard (or wherever) after successful login
-      return NextResponse.redirect(\`\${origin}/dashboard\`)
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
 
   // Return to login if something failed
-  return NextResponse.redirect(\`\${origin}/login?error=auth-failed\`)
+  return NextResponse.redirect(`${origin}/login?error=auth-failed`)
 }

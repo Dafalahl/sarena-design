@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Button from "@/components/Button";
+// import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
@@ -15,28 +15,28 @@ export default function Home() {
             <span className="flex w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
             <span>The premier escrow marketplace for creators</span>
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-8">
             Design freely. <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-rose-400">
               Get paid securely.
             </span>
           </h1>
-          
+
           <p className="mt-4 text-xl text-slate-300 max-w-2xl mx-auto mb-12">
             Connect with top-tier illustrators and designers. Our admin-validated Escrow (Rekber) system ensures your project is delivered safely before funds are released.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
             <Link href="/explore">
-              <Button variant="gradient" className="text-base px-8 py-4">
+              {/* <Button variant="gradient" className="text-base px-8 py-4">
                 Explore Creators
-              </Button>
+              </Button> */}
             </Link>
             <Link href="/login">
-              <Button variant="secondary" className="text-base px-8 py-4 bg-slate-900/50 backdrop-blur-md">
+              {/* <Button variant="secondary" className="text-base px-8 py-4 bg-slate-900/50 backdrop-blur-md">
                 Become a Creator
-              </Button>
+              </Button> */}
             </Link>
           </div>
         </div>
@@ -54,7 +54,7 @@ export default function Home() {
           </div>
           <div className="glass p-6 rounded-2xl w-64 transform translate-y-8 hover:-translate-y-2 relative z-10 shadow-2xl transition-transform duration-500 cursor-pointer border-indigo-500/30">
             <div className="h-40 rounded-xl bg-gradient-to-br from-indigo-900 to-slate-900 flex items-center justify-center mb-4">
-               <span className="text-indigo-400 font-medium">Verified Escrow</span>
+              <span className="text-indigo-400 font-medium">Verified Escrow</span>
             </div>
             <div className="w-full bg-slate-800 rounded-full h-2">
               <div className="bg-indigo-500 h-2 rounded-full w-3/4"></div>
