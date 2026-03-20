@@ -1,13 +1,22 @@
-import { Quicksand } from "next/font/google"
+import { Quicksand } from "next/font/google";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-})
+});
 
-export default function Button({ label, icon: Icon, onClick, iconSize = 18, scale = 75 }) {
+export default function Button({
+  label,
+  icon: Icon,
+  onClick,
+  iconSize = 18,
+  scale = 75,
+}) {
   return (
-    <div className={`relative scale-${scale} inline-flex`}>
+    <div
+      className="relative inline-flex"
+      style={{ transform: `scale(${scale / 100})` }}
+    >
       {/* Rectangle bawah (shadow) */}
       <div
         className="absolute rounded-[15px] inset-0"
@@ -35,5 +44,5 @@ export default function Button({ label, icon: Icon, onClick, iconSize = 18, scal
         {Icon && <Icon size={iconSize} />}
       </button>
     </div>
-  )
+  );
 }

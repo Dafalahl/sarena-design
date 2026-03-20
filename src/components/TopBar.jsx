@@ -9,7 +9,7 @@ export default function TopBar({ onToggleNav }) {
       <Button icon={Menu} iconSize={35} scale={50} onClick={onToggleNav} />
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-[#D9D9D9]/50 rounded-lg px-5 py-2 w-full max-w-2xl shadow-xl">
+      <div className="flex items-center gap-2 bg-[#D9D9D9]/50 rounded-lg px-5 py-2 w-full max-w-2xl shadow-md">
         <Search size={16} className="text-gray-400" />
         <input
           type="text"

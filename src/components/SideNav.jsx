@@ -8,7 +8,7 @@ const navItems = [
   { label: "Account", icon: User, href: "/account" },
   { label: "Inspiration", icon: Lightbulb, href: "/inspiration" },
   { label: "Find Designer", icon: UserSearch, href: "/find-designer" },
-  { label: "Contact", icon: MessageSquare, href: "/contact" },
+  { label: "Chats", icon: MessageSquare, href: "/chats" },
   { label: "Your Work", icon: Briefcase, href: "/your-work" },
   { label: "Orders", icon: Package, href: "/orders" },
 ];

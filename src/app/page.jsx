@@ -17,7 +17,9 @@ export default function Home() {
           <nav className="flex items-center justify-between px-6 py-4">
             <Image src="/logo.svg" alt="Logo Sarena" width={200} height={67} />
             <div className="flex items-center gap-4">
-              <Button label="Find a designer" />
+              <Link href="/find-designer">
+                <Button label="Find a designer" />
+              </Link>
               <Link href="/inspiration">
                 <Button label="Inspiration" />
               </Link>
