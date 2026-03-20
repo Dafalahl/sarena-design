@@ -1,28 +1,20 @@
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import { Pontano_Sans } from "next/font/google"
+import "./globals.css"
 
-const inter = Inter({
-  variable: "--font-inter",
+const pontano = Pontano_Sans({
   subsets: ["latin"],
-});
+  weight: ["700"],
+})
 
 export const metadata = {
-  title: "Sarena Design | Premium Creative Marketplace",
-  description: "Marketplace for top illustrators and designers featuring an Escrow system.",
-};
+  title: "Sarena",
+  description: "Find top designers with secure Escrow protection",
+}
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col`}>
-        <Navbar />
-        <main className="flex-grow pt-20">
-          {children}
-        </main>
-        <Footer />
-      </body>
+    <html lang="en" className={`${pontano.className} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
-  );
+  )
 }
