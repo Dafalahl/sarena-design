@@ -19,12 +19,15 @@ export default function LoginModal({ onClose }) {
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-0 flex items-center justify-center z-50">
-        <div className="bg-[#D9D9D9] rounded-3xl p-10 shadow-md flex flex-col items-center gap-6 w-full max-w-sm">
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div
+            className="bg-[#D9D9D9] rounded-3xl p-10 shadow-md flex flex-col items-center gap-6 w-full max-w-sm pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
           <img src="/logo.svg" alt="Sarena" />
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 py-3 border border-black/40 rounded-lg hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-center gap-3 py-3 border border-black/40 rounded-lg hover:bg-black/10 transition-colors"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

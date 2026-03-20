@@ -5,16 +5,16 @@ const quicksand = Quicksand({
   weight: ["400", "500", "600", "700"],
 })
 
-export default function Button({ label, icon: Icon, onClick }) {
+export default function Button({ label, icon: Icon, onClick, iconSize = 18, scale = 75 }) {
   return (
-    <div className="relative scale-75 inline-flex">
+    <div className={`relative scale-${scale} inline-flex`}>
       {/* Rectangle bawah (shadow) */}
       <div
         className="absolute rounded-[15px] inset-0"
         style={{
           backgroundColor: "#9B9A9A",
           height: "62px",
-          top: "7px",
+          top: "6px",
         }}
       />
 
@@ -32,7 +32,7 @@ export default function Button({ label, icon: Icon, onClick }) {
         }}
       >
         {label}
-        {Icon && <Icon size={18} />}
+        {Icon && <Icon size={iconSize} />}
       </button>
     </div>
   )
