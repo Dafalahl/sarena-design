@@ -2,13 +2,26 @@
 import Image from "next/image";
 import styles from "./landing.module.css";
 import Button from "@/components/ui/button";
-import { LogIn } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginModal from "@/components/LoginModal";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
 
   return (
     <>
@@ -23,11 +36,11 @@ export default function Home() {
               <Link href="/inspiration">
                 <Button label="Inspiration" />
               </Link>
-              <Button
-                label="Login"
-                icon={LogIn}
-                onClick={() => setShowLogin(true)}
-              />
+              {session ? (
+                <Button label="Logout" icon={LogOut} onClick={handleLogout} />
+              ) : (
+                <Button label="Login" icon={LogIn} onClick={() => setShowLogin(true)} />
+              )}
             </div>
           </nav>
           <p className="text-[40px] text-center drop-shadow-[0_4px_4px_rgba(0,0,0,0.25)] mt-40 text-black">

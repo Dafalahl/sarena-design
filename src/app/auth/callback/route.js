@@ -43,8 +43,8 @@ export async function GET(request) {
         }
       }
 
-      // Redirect to dashboard (or wherever) after successful login
-      return NextResponse.redirect(`${origin}/dashboard`)
+ 
+      return NextResponse.redirect(`${origin}/account`)
     } else if (error) {
       console.error("Auth callback exchange error:", error.message)
       return NextResponse.redirect(`${origin}/login?error=auth-failed&reason=${encodeURIComponent(error.message)}`)

@@ -1,0 +1,18 @@
+"use client";
+
+import { useState } from "react";
+import SideNav from "@/components/SideNav";
+import TopBar from "@/components/TopBar";
+
+export default function OrdersPage() {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="flex min-h-screen">
+      <SideNav active="Orders" isOpen={isOpen} />
+      <div className="flex flex-col flex-1">
+        <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
+      </div>
+    </div>
+  );
+}

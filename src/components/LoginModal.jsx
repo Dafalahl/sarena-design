@@ -1,3 +1,5 @@
+// Ini halaman login modal yang akan muncul ketika user klik login
+
 "use client";
 
 import { supabase } from "@/lib/supabase";

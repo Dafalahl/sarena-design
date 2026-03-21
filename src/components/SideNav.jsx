@@ -1,3 +1,5 @@
+// Navbar yang selalu ada setelah melewati home page
+
 "use client";
 
 import Image from "next/image";
