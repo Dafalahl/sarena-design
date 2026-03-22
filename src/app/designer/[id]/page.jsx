@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
+import Button from "@/components/ui/button";
+import OrderModal from "@/components/OrderModal";
 
 export default function DesignerProfilePage() {
   const { id } = useParams();
@@ -15,6 +17,7 @@ export default function DesignerProfilePage() {
   const [isOpen, setIsOpen] = useState(true);
   const [isDesigner, setIsDesigner] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [showOrder, setShowOrder] = useState(false);
 
   useEffect(() => {
     const fetchDesigner = async () => {
@@ -56,6 +59,7 @@ export default function DesignerProfilePage() {
   if (loading) return <div></div>;
 
   return (
+    <>
     <div className="flex min-h-screen">
       <div className="sticky top-0 h-screen">
         <SideNav active="Find Designer" isOpen={isOpen} isDesigner={isDesigner} />
@@ -86,9 +90,7 @@ export default function DesignerProfilePage() {
                 Edit Profile
               </button>
             ) : (
-              <button className="px-6 py-3 bg-black text-white rounded-xl hover:bg-black/80 transition-colors">
-                Order
-              </button>
+              <Button label="Order"  onClick={() => setShowOrder(true)}/>
             )}
           </div>
 
@@ -106,5 +108,15 @@ export default function DesignerProfilePage() {
         </main>
       </div>
     </div>
+
+    {/* modal */}
+            {showOrder && (
+            <OrderModal
+                designer={designer}
+                profile={profile}
+                onClose={() => setShowOrder(false)}
+            />
+            )}
+        </>
   );
 }
