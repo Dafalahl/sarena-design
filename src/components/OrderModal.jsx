@@ -22,8 +22,8 @@ export default function OrderModal({ designer, profile, onClose }) {
     const { error } = await supabase
       .from("orders")
       .insert({
-        buyer_id: authUser.id,
-        designer_id: designer.id,
+        client_id: authUser.id,
+        creator_id: designer.id,
         title,
         brief_message: description,
         deadline,
@@ -55,12 +55,6 @@ export default function OrderModal({ designer, profile, onClose }) {
           {/* Header */}
           <div className="flex items-center justify-between px-8 pt-8 pb-4">
             <h2 className="text-2xl font-bold">Request Order</h2>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 border border-black/20 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              ✕
-            </button>
           </div>
 
           <hr className="border-black/10 mx-8" />

@@ -8,7 +8,7 @@ export default function DesignerCard({ designer }) {
         {/* Avatar */}
         <img
           src={designer.avatar_url}
-          className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+          className="w-14 h-14 rounded-full object-cover shrink-0"
         />
 
         {/* Info */}
