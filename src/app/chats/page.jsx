@@ -9,7 +9,7 @@ export default function ChatsPage() {
 
   return (
     <div className="flex min-h-screen">
-      <SideNav active="Chats" isOpen={isOpen} />
+      <SideNav active="Chats" isOpen={isOpen} isDesigner={isDesigner} />
       <div className="flex flex-col flex-1">
         <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
       </div>

@@ -9,7 +9,7 @@ export default function OrdersPage() {
 
   return (
     <div className="flex min-h-screen">
-      <SideNav active="Orders" isOpen={isOpen} />
+      <SideNav active="Orders" isOpen={isOpen} isDesigner={isDesigner} />
       <div className="flex flex-col flex-1">
         <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
       </div>

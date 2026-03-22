@@ -11,7 +11,7 @@ export default function AccountPage() {
   const [bio, setBio] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isNavOpen, setIsNavOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -63,37 +63,65 @@ export default function AccountPage() {
     alert("Profil tersimpan!");
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div></div>;
 
-  return (
+return (
     <div className="flex min-h-screen">
-      <SideNav active="Account" isOpen={isNavOpen} />
+      {/* SideNav sticky */}
+      <div className="sticky top-0 h-screen">
+        <SideNav active="Account" isOpen={isOpen} isDesigner={isDesigner} />
+      </div>
+
       <div className="flex flex-col flex-1">
-        <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
-        <main className="p-8 max-w-lg">
+        {/* TopBar sticky */}
+        <div className="sticky top-0 z-30 bg-white">
+          <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
+        </div>
 
-          {/* Profil Client — selalu tampil */}
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold">Profil Kamu</h2>
-            <img src={user?.avatar_url} className="w-20 h-20 rounded-full" />
-            <p className="text-gray-500 text-sm">Nama</p>
-            <p className="font-medium">{user?.full_name}</p>
-          </div>
+            <main className="flex flex-col">
 
-          {/* Tombol Become a Designer — hanya kalau belum jadi designer */}
-          {!isDesigner && (
-            <div className="flex flex-col gap-2 mt-6">
-              <hr className="border-black/10" />
-              <p className="text-sm text-gray-500">Ingin menjadi designer?</p>
-              <button
-                onClick={handleBecomeDesigner}
-                className="py-3 border border-black rounded-lg hover:bg-black hover:text-white transition-colors"
-              >
-                Become a Designer
-              </button>
+            {/* Banner — hanya designer */}
+            {isDesigner && (
+                <div className="bg-[#D9D9D9]/70 mx-6 mt-6 rounded-2xl h-40 shadow-md mb-6" />
+            )}
+
+            {/* Avatar + Nama — selalu tampil */}
+            <div className="flex items-center gap-4 px-8 mt-6 mb-16">
+                <img src={user?.avatar_url} className="w-24 h-24 rounded-full shadow-md" />
+                <p className="text-2xl font-bold">{user?.full_name}</p>
             </div>
-          )}
-        </main>
+
+            {/* Portfolio — hanya designer */}
+            {isDesigner && (
+                <>
+                <div className="relative flex items-center px-8 mb-6 mt-4">
+                    <hr className="flex-1 border-black/10" />
+                    <span className="absolute left-1/2 -translate-x-1/2 bg-white px-4 text-sm font-medium">Portfolio</span>
+                    <hr className="flex-1 border-black/10" />
+                </div>
+                <div className="grid grid-cols-4 gap-4 px-8">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="bg-[#D9D9D9]/70 rounded-2xl h-52 shadow-xl" />
+                    ))}
+                </div>
+                </>
+            )}
+
+            {/* Tombol Become a Designer */}
+            {!isDesigner && (
+                <div className="flex flex-col gap-2 px-8 mt-8 max-w-sm">
+                <hr className="border-black/10" />
+                <p className="text-sm text-gray-500">Ingin menjadi designer?</p>
+                <button
+                    onClick={handleBecomeDesigner}
+                    className="py-3 border border-black rounded-lg hover:bg-black hover:text-white transition-colors"
+                >
+                    Become a Designer
+                </button>
+                </div>
+            )}
+
+            </main>
       </div>
     </div>
   );
