@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { User, Lightbulb, UserSearch, MessageSquare, Briefcase, Package } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const navItems = [
   { label: "Account", icon: User, href: "/account", designerOnly: false },
@@ -13,12 +15,27 @@ const navItems = [
   { label: "Orders", icon: Package, href: "/orders", designerOnly: false },
 ];
 
-export default function SideNav({ active, isOpen, isDesigner }) {
+export default function SideNav({ active, isOpen }) {
+  const [isDesigner, setIsDesigner] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+      const { data } = await supabase
+        .from("users")
+        .select("is_designer")
+        .eq("id", authUser.id)
+        .single();
+      setIsDesigner(data?.is_designer || false);
+    };
+    fetchUser();
+  }, []);
+
   const filteredItems = navItems.filter(item => !item.designerOnly || isDesigner);
 
   return (
     <aside className={`border-r border-gray-200 flex flex-col py-4 px-3 transition-all duration-300 ${isOpen ? "w-56" : "w-16"}`}>
-      {/* Logo / Icon */}
       <div className="mb-8 px-2">
         <Link href="/">
           {isOpen
@@ -28,7 +45,6 @@ export default function SideNav({ active, isOpen, isDesigner }) {
         </Link>
       </div>
 
-      {/* Nav Items */}
       <nav className="flex flex-col gap-1">
         {filteredItems.map((item) => {
           const Icon = item.icon;

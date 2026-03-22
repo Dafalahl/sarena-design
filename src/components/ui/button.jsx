@@ -13,10 +13,11 @@ export default function Button({
   onClick,
   iconSize = 18,
   scale = 75,
+  className = "",
 }) {
   return (
     <div
-      className="relative inline-flex"
+      className={`relative inline-flex ${className}`}
       style={{ transform: `scale(${scale / 100})` }}
     >
       {/* Rectangle bawah (shadow) */}

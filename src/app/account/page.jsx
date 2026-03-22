@@ -69,7 +69,7 @@ return (
     <div className="flex min-h-screen">
       {/* SideNav sticky */}
       <div className="sticky top-0 h-screen">
-        <SideNav active="Account" isOpen={isOpen} isDesigner={isDesigner} />
+        <SideNav active="Account" isOpen={isOpen}/>
       </div>
 
       <div className="flex flex-col flex-1">

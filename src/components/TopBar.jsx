@@ -4,6 +4,7 @@ import { Search, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import Button from "@/components/ui/button";
 
 export default function TopBar({ onToggleNav }) {
   const [user, setUser] = useState(null);
@@ -34,9 +35,7 @@ export default function TopBar({ onToggleNav }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-200">
       {/* Hamburger */}
-      <button onClick={onToggleNav} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-        <Menu size={24} />
-      </button>
+      <Button icon={Menu} iconSize={30} onClick={onToggleNav}  scale={50} className="-ml-4"/>
 
       {/* Search */}
       <div className="flex items-center gap-2 bg-[#D9D9D9] opacity-70 rounded-lg px-5 py-2 flex-1 shadow-md">

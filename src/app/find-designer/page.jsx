@@ -43,7 +43,7 @@ export default function FindDesignerPage() {
   return (
     <div className="flex min-h-screen">
       <div className="sticky top-0 h-screen">
-        <SideNav active="Find Designer" isOpen={isOpen} isDesigner={isDesigner} />
+        <SideNav active="Find Designer" isOpen={isOpen}/>
       </div>
       <div className="flex flex-col flex-1">
         <div className="sticky top-0 z-30 bg-white">

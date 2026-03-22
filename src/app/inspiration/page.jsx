@@ -9,7 +9,7 @@ export default function InspirationPage() {
 
   return (
     <div className="flex min-h-screen">
-      <SideNav active="Inspiration" isOpen={isOpen} isDesigner={isDesigner} />
+      <SideNav active="Inspiration" isOpen={isOpen}/>
       <div className="flex flex-col flex-1">
         <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
       </div>
