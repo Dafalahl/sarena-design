@@ -33,13 +33,6 @@ export default function OrdersPage() {
         .eq("client_id", authUser.id)
         .in("status", statusMap[activeTab]);
 
-      console.log("[fetchOrders] activeTab:", activeTab);
-      console.log(
-        "[fetchOrders] statusMap for activeTab:",
-        statusMap[activeTab],
-      );
-      console.log("[fetchOrders] ordersData:", ordersData);
-      console.log("[fetchOrders] error:", JSON.stringify(error));
       if (!ordersData) return;
 
       // fetch user data untuk setiap order
@@ -81,13 +74,6 @@ export default function OrdersPage() {
 
   const handleBayar = async (order) => {
     try {
-      console.log(
-        "[handleBayar] Starting payment for order:",
-        order.id,
-        "Amount:",
-        order.amount,
-      );
-
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,32 +81,24 @@ export default function OrdersPage() {
       });
 
       const data = await res.json();
-      console.log("[handleBayar] Checkout API response:", data);
 
       if (data.checkout_url) {
-        console.log("[handleBayar] Redirecting to Xendit:", data.checkout_url);
         window.location.href = data.checkout_url; // redirect ke Xendit
       } else {
-        console.error("[handleBayar] No checkout_url in response");
         alert("Gagal membuat link pembayaran");
       }
     } catch (error) {
-      console.error("[handleBayar] Error:", error);
       alert("Terjadi kesalahan");
     }
   };
 
   const handlePreview = async (order) => {
     try {
-      console.log("[handlePreview] Fetching deliverable for order:", order.id);
       const { data: deliverableData, error } = await supabase
         .from("deliverables")
         .select("*")
         .eq("order_id", order.id)
         .single();
-
-      console.log("[handlePreview] Deliverable data:", deliverableData);
-      console.log("[handlePreview] Error:", error);
 
       if (deliverableData) {
         setDeliverable(deliverableData);
@@ -129,22 +107,32 @@ export default function OrdersPage() {
         alert("Tidak ada hasil yang ditemukan");
       }
     } catch (error) {
-      console.error("[handlePreview] Error:", error);
       alert("Gagal memuat hasil");
     }
   };
 
   const handleApprove = async () => {
-    await supabase
-      .from("orders")
-      .update({ status: "completed" })
-      .eq("id", previewOrder.id);
+    try {
+      const res = await fetch("/api/disburse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: previewOrder.id }),
+      });
 
-    setPreviewOrder(null);
-    setDeliverable(null);
-    setLoading(true);
-    setOrders(orders.filter((o) => o.id !== previewOrder.id));
-    alert("Order selesai! Terima kasih.");
+      const data = await res.json();
+
+      if (data.success) {
+        setPreviewOrder(null);
+        setDeliverable(null);
+        setOrders(orders.filter((o) => o.id !== previewOrder.id));
+        alert("Order selesai! Dana telah dikirim ke designer.");
+      } else {
+        alert("Gagal: " + data.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan");
+    }
   };
 
   const statusLabel = {
