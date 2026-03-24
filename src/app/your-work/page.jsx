@@ -4,16 +4,22 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
+import OrderDetailModal from "@/components/OrderDetailModal";
+import DeliverModal from "@/components/DeliverModal";
 
 export default function YourWorkPage() {
   const [activeTab, setActiveTab] = useState("incoming");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isNavOpen, setIsNavOpen] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (!authUser) return;
 
       const statusMap = {
@@ -22,13 +28,26 @@ export default function YourWorkPage() {
         completed: "completed",
       };
 
-      const { data } = await supabase
+      const { data: ordersData } = await supabase
         .from("orders")
-        .select("*, users!orders_client_id_fkey(full_name, avatar_url)")
+        .select("*")
         .eq("creator_id", authUser.id)
         .eq("status", statusMap[activeTab]);
 
-      setOrders(data || []);
+      if (!ordersData) return;
+
+      const ordersWithUsers = await Promise.all(
+        ordersData.map(async (order) => {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("full_name, avatar_url")
+            .eq("id", order.client_id)
+            .single();
+          return { ...order, users: userData };
+        }),
+      );
+
+      setOrders(ordersWithUsers);
       setLoading(false);
     };
 
@@ -40,7 +59,7 @@ export default function YourWorkPage() {
       .from("orders")
       .update({ status: "in_progress" })
       .eq("id", orderId);
-    setOrders(orders.filter(o => o.id !== orderId));
+    setOrders(orders.filter((o) => o.id !== orderId));
   };
 
   const handleTolak = async (orderId) => {
@@ -48,7 +67,7 @@ export default function YourWorkPage() {
       .from("orders")
       .update({ status: "rejected" })
       .eq("id", orderId);
-    setOrders(orders.filter(o => o.id !== orderId));
+    setOrders(orders.filter((o) => o.id !== orderId));
   };
 
   const tabs = [
@@ -111,10 +130,17 @@ export default function YourWorkPage() {
                   {/* Info */}
                   <div className="flex-1">
                     <p className="font-semibold">{order.title}</p>
-                    <p className="text-sm text-gray-500">From {order.users?.full_name}</p>
+                    <p className="text-sm text-gray-500">
+                      From {order.users?.full_name}
+                    </p>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-sm text-gray-500">
-                        Deadline: {new Date(order.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        Deadline:{" "}
+                        {new Date(order.deadline).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </p>
                       {activeTab === "incoming" && (
                         <span className="text-xs bg-yellow-100 text-yellow-700 border border-yellow-300 px-2 py-0.5 rounded-full">
@@ -128,24 +154,48 @@ export default function YourWorkPage() {
                   {activeTab === "incoming" && (
                     <div className="flex gap-3">
                       <button
-                        onClick={() => handleTerima(order.id)}
-                        className="px-6 py-2 border border-black/20 rounded-xl hover:bg-black hover:text-white transition-colors font-medium"
+                        onClick={() => setSelectedOrder(order)}
+                        className="px-4 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors text-sm"
                       >
-                        Terima
-                      </button>
-                      <button
-                        onClick={() => handleTolak(order.id)}
-                        className="px-6 py-2 border border-black/20 rounded-xl hover:bg-red-500 hover:text-white transition-colors font-medium"
-                      >
-                        Tolak
+                        Detail
                       </button>
                     </div>
+                  )}
+
+                  {/* Tombol Kirim Hasil */}
+                  {activeTab === "inprogress" && (
+                    <button
+                      onClick={() => setSelectedDelivery(order)}
+                      className="px-4 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors text-sm"
+                    >
+                      Kirim Hasil
+                    </button>
                   )}
                 </div>
               ))}
             </div>
           )}
         </main>
+        {selectedOrder && (
+          <OrderDetailModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
+            onUpdate={() => {
+              setSelectedOrder(null);
+              setOrders(orders.filter((o) => o.id !== selectedOrder.id));
+            }}
+          />
+        )}
+        {selectedDelivery && (
+          <DeliverModal
+            order={selectedDelivery}
+            onClose={() => setSelectedDelivery(null)}
+            onUpdate={() => {
+              setSelectedDelivery(null);
+              setOrders(orders.filter((o) => o.id !== selectedDelivery.id));
+            }}
+          />
+        )}
       </div>
     </div>
   );
