@@ -43,7 +43,19 @@ export default function OrdersPage() {
             .select("full_name, avatar_url")
             .eq("id", order.creator_id)
             .single();
-          return { ...order, creator: userData };
+
+          // Fetch deliverable kalau status completed
+          let deliverableUrl = null;
+          if (order.status === "completed") {
+            const { data: deliverableData } = await supabase
+              .from("deliverables")
+              .select("file_url")
+              .eq("order_id", order.id)
+              .single();
+            deliverableUrl = deliverableData?.file_url ?? null;
+          }
+
+          return { ...order, creator: userData, deliverable_url: deliverableUrl };
         }),
       );
 
@@ -268,6 +280,18 @@ export default function OrdersPage() {
                     >
                       Lihat Hasil
                     </button>
+                  )}
+
+                  {/* Tombol download kalau sudah completed */}
+                  {order.status === "completed" && order.deliverable_url && (
+                    <a
+                      href={order.deliverable_url}
+                      download
+                      target="_blank"
+                      className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Download
+                    </a>
                   )}
                 </div>
               ))}
