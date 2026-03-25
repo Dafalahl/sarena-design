@@ -4,113 +4,158 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
+import EditProfileModal from "@/components/EditProfileModal";
+import PostDetailModal from "@/components/PostDetailModal";
+import Button from "@/components/ui/button";
 
 export default function AccountPage() {
   const [user, setUser] = useState(null);
   const [isDesigner, setIsDesigner] = useState(false);
-  const [bio, setBio] = useState("");
-  const [username, setUsername] = useState("");
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(true);
-  const [disbursementChannel, setDisbursementChannel] = useState("");
-  const [disbursementAccount, setDisbursementAccount] = useState("");
-  const [disbursementName, setDisbursementName] = useState("");
+  const [isNavOpen, setIsNavOpen] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-      if (!authUser) {
-        setLoading(false);
-        return;
-      }
+  // Posts state
+  const [posts, setPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-      const { data } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", authUser.id)
-        .single();
+  const fetchUser = async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) { setLoading(false); return; }
 
-      setUser(data);
-      setIsDesigner(data?.is_designer || false);
-      setLoading(false);
+    const { data } = await supabase.from("users").select("*").eq("id", authUser.id).single();
+    setUser(data);
+    setIsDesigner(data?.is_designer || false);
 
-      if (data?.is_designer) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .single();
-        setBio(profile?.bio || "");
-        setUsername(profile?.username || "");
-        setDisbursementChannel(profile?.disbursement_channel || "");
-        setDisbursementAccount(profile?.disbursement_account || "");
-        setDisbursementName(profile?.disbursement_name || "");
-      }
-    };
+    if (data?.is_designer) {
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
+      setProfile(profileData);
+      fetchPosts(authUser.id);
+    }
 
-    fetchUser();
-  }, []);
+    setLoading(false);
+  };
+
+  const fetchPosts = async (designerId) => {
+    const { data } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("designer_id", designerId)
+      .order("created_at", { ascending: false });
+    setPosts(data || []);
+  };
+
+  useEffect(() => { fetchUser(); }, []);
 
   const handleBecomeDesigner = async () => {
-    await supabase
-      .from("users")
-      .update({ is_designer: true })
-      .eq("id", user.id);
-
-    await supabase
-      .from("profiles")
-      .insert({ id: user.id, username: user.full_name });
-
+    await supabase.from("users").update({ is_designer: true }).eq("id", user.id);
+    await supabase.from("profiles").insert({ id: user.id, username: user.full_name });
     setIsDesigner(true);
+    fetchUser();
   };
 
-  const handleSaveProfile = async () => {
-    await supabase
-      .from("profiles")
-      .update({
-        username,
-        bio,
-        disbursement_channel: disbursementChannel,
-        disbursement_account: disbursementAccount,
-        disbursement_name: disbursementName,
-      })
-      .eq("id", user.id);
-    alert("Profil tersimpan!");
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setSelectedFile(file);
+    setPreviewFile(URL.createObjectURL(file));
+    setShowUploadForm(true);
   };
 
-  if (loading) return <div></div>;
+  const handleUploadPost = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+
+    const fileExt = selectedFile.name.split(".").pop();
+    const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("posts")
+      .upload(filePath, selectedFile);
+
+    if (uploadError) {
+      alert("Gagal upload foto");
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("posts").getPublicUrl(filePath);
+
+    await supabase.from("posts").insert({
+      designer_id: user.id,
+      image_url: urlData.publicUrl,
+      caption,
+    });
+
+    setUploading(false);
+    setShowUploadForm(false);
+    setCaption("");
+    setPreviewFile(null);
+    setSelectedFile(null);
+    fetchPosts(user.id);
+  };
+
+  const handleDeletePost = async (post) => {
+    const urlParts = post.image_url.split("/posts/")[1];
+    await supabase.storage.from("posts").remove([urlParts]);
+    await supabase.from("posts").delete().eq("id", post.id);
+    setSelectedPost(null);
+    fetchPosts(user.id);
+  };
+
+  if (loading) return <div />;
 
   return (
     <div className="flex min-h-screen">
-      {/* SideNav sticky */}
       <div className="sticky top-0 h-screen">
-        <SideNav active="Account" isOpen={isOpen} />
+        <SideNav active="Account" isOpen={isNavOpen} />
       </div>
 
       <div className="flex flex-col flex-1">
-        {/* TopBar sticky */}
         <div className="sticky top-0 z-30 bg-white">
-          <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
+          <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
         </div>
 
         <main className="flex flex-col">
-          {/* Banner — hanya designer */}
+          {/* Banner */}
           {isDesigner && (
-            <div className="bg-[#D9D9D9]/70 mx-6 mt-6 rounded-2xl h-40 shadow-md mb-6" />
+            <div className="mx-6 mt-6 mb-6 rounded-2xl">
+              <div className="bg-[#D9D9D9]/70 rounded-2xl h-40 overflow-hidden">
+                {profile?.banner_url ? (
+                  <img src={profile.banner_url} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full" />
+                )}
+              </div>
+            </div>
           )}
 
-          {/* Avatar + Nama — selalu tampil */}
-          <div className="flex items-center gap-4 px-8 mt-6 mb-16">
-            <img
-              src={user?.avatar_url}
-              className="w-24 h-24 rounded-full shadow-md"
-            />
-            <p className="text-2xl font-bold">{user?.full_name}</p>
+          {/* Avatar + Nama + Tombol Edit */}
+          <div className="flex items-center gap-4 px-8 mt-6 mb-8 justify-between">
+            <div className="flex items-center gap-4">
+              <img src={user?.avatar_url} className="w-24 h-24 rounded-full shadow-md" />
+              <div>
+                <p className="text-2xl font-bold">{user?.full_name}</p>
+                {isDesigner && profile?.username && (
+                  <p className="text-sm text-gray-400">@{profile.username}</p>
+                )}
+                {isDesigner && profile?.bio && (
+                  <p className="text-sm text-gray-500 mt-1 max-w-xs">{profile.bio}</p>
+                )}
+              </div>
+            </div>
+            {isDesigner && (
+              <Button label="Edit Profil" onClick={() => setShowEditModal(true)} />
+            )}
           </div>
 
-          {/* Portfolio — hanya designer */}
+          {/* Portfolio */}
           {isDesigner && (
             <>
               <div className="relative flex items-center px-8 mb-6 mt-4">
@@ -120,106 +165,44 @@ export default function AccountPage() {
                 </span>
                 <hr className="flex-1 border-black/10" />
               </div>
-              <div className="grid grid-cols-4 gap-4 px-8">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-[#D9D9D9]/70 rounded-2xl h-52 shadow-xl"
+
+              {/* Masonry Grid */}
+              <div className="columns-2 md:columns-3 lg:columns-4 gap-4 px-8 mb-16 space-y-4">
+
+                {/* Tombol Upload */}
+                <div
+                  className="break-inside-avoid rounded-2xl h-48 bg-[#D9D9D9]/40 border-2 border-dashed border-black/20 flex flex-col items-center justify-center cursor-pointer hover:bg-[#D9D9D9]/70 transition-colors"
+                  onClick={() => document.getElementById("postInput").click()}
+                >
+                  <span className="text-3xl text-black/30">+</span>
+                  <p className="text-sm text-black/40 mt-1">Upload foto</p>
+                  <input
+                    id="postInput"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileSelect}
                   />
+                </div>
+
+                {/* Post Cards */}
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="break-inside-avoid rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border-[0.2px] border-black/30"
+                    onClick={() => setSelectedPost(post)}
+                  >
+                    <img
+                      src={post.image_url}
+                      className="w-full object-cover"
+                    />
+                  </div>
                 ))}
               </div>
             </>
           )}
 
-          {/* Profil Designer — hanya designer */}
-          {isDesigner && (
-            <div className="flex flex-col gap-4 mt-6 px-8 mb-16">
-              <hr className="border-black/10" />
-              <h2 className="text-xl font-bold">Profil Designer</h2>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-500">Username</label>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="border border-black/20 rounded-lg px-3 py-2 outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-500">Bio</label>
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="border border-black/20 rounded-lg px-3 py-2 outline-none resize-none h-28"
-                />
-              </div>
-
-              <hr className="border-black/10" />
-              <h3 className="font-semibold">Info Pencairan Dana</h3>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-500">
-                  Metode Pencairan
-                </label>
-                <select
-                  value={disbursementChannel}
-                  onChange={(e) => setDisbursementChannel(e.target.value)}
-                  className="border border-black/20 rounded-lg px-3 py-2 outline-none"
-                >
-                  <option value="">Pilih metode</option>
-                  <option value="GOPAY">GoPay</option>
-                  <option value="OVO">OVO</option>
-                  <option value="DANA">DANA</option>
-                  <option value="BCA">Bank BCA</option>
-                  <option value="BNI">Bank BNI</option>
-                  <option value="BRI">Bank BRI</option>
-                  <option value="MANDIRI">Bank Mandiri</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-500">
-                  {disbursementChannel === "GOPAY" ||
-                  disbursementChannel === "OVO" ||
-                  disbursementChannel === "DANA"
-                    ? "Nomor HP"
-                    : "Nomor Rekening"}
-                </label>
-                <input
-                  value={disbursementAccount}
-                  onChange={(e) => setDisbursementAccount(e.target.value)}
-                  placeholder={
-                    disbursementChannel === "GOPAY"
-                      ? "08xxxxxxxxxx"
-                      : "Nomor rekening"
-                  }
-                  className="border border-black/20 rounded-lg px-3 py-2 outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-500">
-                  Nama Pemilik Rekening
-                </label>
-                <input
-                  value={disbursementName}
-                  onChange={(e) => setDisbursementName(e.target.value)}
-                  placeholder="Nama sesuai rekening"
-                  className="border border-black/20 rounded-lg px-3 py-2 outline-none"
-                />
-              </div>
-
-              <button
-                onClick={handleSaveProfile}
-                className="py-3 bg-black text-white rounded-lg hover:bg-black/80 transition-colors"
-              >
-                Simpan
-              </button>
-            </div>
-          )}
-
-          {/* Tombol Become a Designer */}
+          {/* Become a Designer */}
           {!isDesigner && (
             <div className="flex flex-col gap-2 px-8 mt-8 max-w-sm">
               <hr className="border-black/10" />
@@ -234,6 +217,73 @@ export default function AccountPage() {
           )}
         </main>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <EditProfileModal
+          user={user}
+          profile={profile}
+          onClose={() => setShowEditModal(false)}
+          onSaved={() => { setShowEditModal(false); fetchUser(); }}
+        />
+      )}
+
+      {/* Upload Form Modal */}
+      {showUploadForm && (
+        <>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setShowUploadForm(false)} />
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div
+              className="bg-[#F0F0F0] rounded-3xl w-full max-w-md shadow-xl pointer-events-auto flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-8 pt-8 pb-4">
+                <h2 className="text-2xl font-bold">Upload Postingan</h2>
+              </div>
+              <hr className="border-black/10 mx-8" />
+              <div className="px-8 py-6 flex flex-col gap-4">
+                {previewFile && (
+                  <img src={previewFile} className="w-full rounded-xl object-contain max-h-64" />
+                )}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-500">Caption (opsional)</label>
+                  <textarea
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    placeholder="Tulis caption..."
+                    className="border border-black/20 rounded-lg px-3 py-2 outline-none resize-none h-24 bg-white"
+                  />
+                </div>
+              </div>
+              <hr className="border-black/10 mx-8" />
+              <div className="flex items-center justify-between px-8 py-6">
+                <button
+                  onClick={() => { setShowUploadForm(false); setPreviewFile(null); setSelectedFile(null); }}
+                  className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUploadPost}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium disabled:opacity-50"
+                >
+                  {uploading ? "Mengupload..." : "Upload"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onDelete={() => handleDeletePost(selectedPost)}
+        />
+      )}
     </div>
   );
 }
