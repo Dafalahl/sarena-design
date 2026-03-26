@@ -1,50 +1,51 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva } from "class-variance-authority";
+// ini template button 3D
 
-import { cn } from "@/lib/utils"
+import { Quicksand } from "next/font/google";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-slate-800 text-white hover:bg-slate-700 border border-slate-700 shadow-sm",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        primary: "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)]",
-        gradient: "bg-gradient-to-r from-indigo-600 to-rose-500 text-white hover:opacity-90 shadow-lg",
-      },
-      size: {
-        default: "h-11 px-6 py-2",
-        sm: "h-9 px-4 text-xs",
-        lg: "h-12 px-10 text-base",
-        icon: "h-9 w-9",
-      },
-    },
-    defaultVariants: {
-      variant: "primary",
-      size: "default",
-    },
-  }
-)
+const quicksand = Quicksand({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : "button"
+export default function Button({
+  label,
+  icon: Icon,
+  onClick,
+  iconSize = 18,
+  scale = 75,
+  className = "",
+}) {
   return (
-    <Comp
-      className={cn(buttonVariants({ variant, size, className }))}
-      ref={ref}
-      {...props} />
-  );
-})
-Button.displayName = "Button"
+    <div
+      className={`relative inline-flex ${className}`}
+      style={{ transform: `scale(${scale / 100})` }}
+    >
+      {/* Rectangle bawah (shadow) */}
+      <div
+        className="absolute rounded-[15px] inset-0"
+        style={{
+          backgroundColor: "#9B9A9A",
+          height: "62px",
+          top: "6px",
+        }}
+      />
 
-export { Button, buttonVariants }
+      {/* Rectangle atas (tombol utama) */}
+      <button
+        onClick={onClick}
+        className={`${quicksand.className} relative flex items-center justify-center gap-2 font-bold transition-transform active:translate-y-1.5 whitespace-nowrap`}
+        style={{
+          backgroundColor: "#FFFEFE",
+          borderRadius: "15px",
+          border: "0.3px solid #000",
+          padding: "0px 24px",
+          height: "62px",
+          color: "#000",
+        }}
+      >
+        {label}
+        {Icon && <Icon size={iconSize} />}
+      </button>
+    </div>
+  );
+}
