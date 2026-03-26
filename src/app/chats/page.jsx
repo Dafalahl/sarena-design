@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 import ChatRoom from "@/components/ChatRoom";
 
-export default function ChatPage() {
+function ChatContent() {
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -139,5 +140,13 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading chats...</div>}>
+      <ChatContent />
+    </Suspense>
   );
 }
