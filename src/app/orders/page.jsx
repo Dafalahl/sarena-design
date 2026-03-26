@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { goToChat } from "@/lib/chat";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 
@@ -12,6 +14,7 @@ export default function OrdersPage() {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [previewOrder, setPreviewOrder] = useState(null);
   const [deliverable, setDeliverable] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -55,7 +58,11 @@ export default function OrdersPage() {
             deliverableUrl = deliverableData?.file_url ?? null;
           }
 
-          return { ...order, creator: userData, deliverable_url: deliverableUrl };
+          return {
+            ...order,
+            creator: userData,
+            deliverable_url: deliverableUrl,
+          };
         }),
       );
 
@@ -144,6 +151,44 @@ export default function OrdersPage() {
     } catch (error) {
       console.error(error);
       alert("Terjadi kesalahan");
+    }
+  };
+
+  // Setelah insert order berhasil
+  const getOrCreateRoom = async (clientId, designerId, orderId) => {
+    const { data: existing } = await supabase
+      .from("rooms")
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("designer_id", designerId)
+      .single();
+
+    if (existing) return existing.id;
+
+    const { data: newRoom } = await supabase
+      .from("rooms")
+      .insert({
+        client_id: clientId,
+        designer_id: designerId,
+        order_id: orderId,
+      })
+      .select("id")
+      .single();
+
+    return newRoom.id;
+  };
+
+  const handleGoToChat = async (order) => {
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) return;
+
+      await goToChat(router, authUser.id, order.creator_id);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal membuka chat");
     }
   };
 
@@ -254,45 +299,63 @@ export default function OrdersPage() {
                     )}
                   </div>
 
-                  {/* Tombol setuju/tolak harga */}
-                  {order.status === "negotiating" && (
-                    <div className="flex gap-3">
+                  {/* Tombol-tombol aksi */}
+                  <div className="flex items-center gap-2">
+
+                    {/* Negotiating: Bayar + Tolak */}
+                    {order.status === "negotiating" && (
+                      <>
+                        <button
+                          onClick={() => handleBayar(order)}
+                          className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium"
+                        >
+                          Bayar
+                        </button>
+                        <button
+                          onClick={() => handleTolakHarga(order)}
+                          className="px-6 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-medium"
+                        >
+                          Tolak
+                        </button>
+                      </>
+                    )}
+
+                    {/* Delivered: Lihat Hasil */}
+                    {order.status === "delivered" && (
                       <button
-                        onClick={() => handleBayar(order)}
+                        onClick={() => handlePreview(order)}
                         className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium"
                       >
-                        Bayar
+                        Lihat Hasil
                       </button>
-                      <button
-                        onClick={() => handleTolakHarga(order)}
-                        className="px-6 py-2 border border-black/20 rounded-xl hover:bg-red-500 hover:text-white transition-colors font-medium"
+                    )}
+
+                    {/* Completed: Download */}
+                    {order.status === "completed" && order.deliverable_url && (
+                      <a
+                        href={order.deliverable_url}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium"
                       >
-                        Tolak
+                        Download
+                      </a>
+                    )}
+
+                    {/* Tombol Chat — selalu paling kanan, semua status kecuali rejected */}
+                    {order.status !== "rejected" && (
+                      <button
+                        onClick={() => handleGoToChat(order)}
+                        className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-xl hover:bg-black/80 transition-colors ml-auto"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
                       </button>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Tombol preview hasil */}
-                  {order.status === "delivered" && (
-                    <button
-                      onClick={() => handlePreview(order)}
-                      className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium"
-                    >
-                      Lihat Hasil
-                    </button>
-                  )}
-
-                  {/* Tombol download kalau sudah completed */}
-                  {order.status === "completed" && order.deliverable_url && (
-                    <a
-                      href={order.deliverable_url}
-                      download
-                      target="_blank"
-                      className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-                    >
-                      Download
-                    </a>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

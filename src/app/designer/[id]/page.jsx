@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { goToChat } from "@/lib/chat";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 import Button from "@/components/ui/button";
@@ -20,15 +21,20 @@ export default function DesignerProfilePage() {
   const [isDesigner, setIsDesigner] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
     const init = async () => {
       // Cek apakah ini profil sendiri → redirect ke /account
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (authUser?.id === id) {
         router.replace("/account");
         return;
       }
+
+      setCurrentUserId(authUser?.id || null);
 
       // Cek apakah current user adalah designer
       if (authUser) {
@@ -69,13 +75,30 @@ export default function DesignerProfilePage() {
     init();
   }, [id]);
 
+  const handleChat = async () => {
+    if (!currentUserId) {
+      alert("Silakan login terlebih dahulu");
+      return;
+    }
+    try {
+      await goToChat(router, currentUserId, id);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal membuka chat");
+    }
+  };
+
   if (loading) return <div />;
 
   return (
     <>
       <div className="flex min-h-screen">
         <div className="sticky top-0 h-screen">
-          <SideNav active="Find Designer" isOpen={isOpen} isDesigner={isDesigner} />
+          <SideNav
+            active="Find Designer"
+            isOpen={isOpen}
+            isDesigner={isDesigner}
+          />
         </div>
 
         <div className="flex flex-col flex-1">
@@ -88,7 +111,10 @@ export default function DesignerProfilePage() {
             <div className="mx-6 mt-6 mb-6">
               <div className="bg-[#D9D9D9]/70 rounded-2xl h-40 shadow-md overflow-hidden">
                 {profile?.banner_url ? (
-                  <img src={profile.banner_url} className="w-full h-full object-cover" />
+                  <img
+                    src={profile.banner_url}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full" />
                 )}
@@ -98,21 +124,26 @@ export default function DesignerProfilePage() {
             {/* Avatar + Info + Tombol Order */}
             <div className="flex items-center justify-between px-8 mb-8">
               <div className="flex items-center gap-4">
-                <img src={designer?.avatar_url} className="w-24 h-24 rounded-full shadow-md" />
+                <img
+                  src={designer?.avatar_url}
+                  className="w-24 h-24 rounded-full shadow-md"
+                />
                 <div>
-                  <p className="text-2xl font-bold">
-                    {designer?.full_name}
-                  </p>
+                  <p className="text-2xl font-bold">{designer?.full_name}</p>
                   {profile?.username && (
                     <p className="text-sm text-gray-400">@{profile.username}</p>
                   )}
                   {profile?.bio && (
-                    <p className="text-sm text-gray-500 mt-1 max-w-xs">{profile.bio}</p>
+                    <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                      {profile.bio}
+                    </p>
                   )}
                 </div>
               </div>
-
-              <Button label="Order" onClick={() => setShowOrder(true)} />
+              <div className="flex gap-3">
+                <Button label="Order" onClick={() => setShowOrder(true)} />
+                <Button label="Chat" onClick={handleChat} />
+              </div>
             </div>
 
             {/* Portfolio */}
