@@ -103,9 +103,9 @@ export default function ChatRoom({ room, currentUser, otherUser }) {
   const isMe = (msg) => msg.sender_id === currentUser.id;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-black/10 flex items-center gap-3">
+      <div className="px-6 py-4 border-b border-black/10 flex items-center gap-3 flex-shrink-0">
         <img
           src={otherUser?.avatar_url}
           className="w-9 h-9 rounded-full object-cover"
@@ -167,7 +167,7 @@ export default function ChatRoom({ room, currentUser, otherUser }) {
 
       {/* Order Picker */}
       {showOrderPicker && (
-        <div className="mx-6 mb-2 border border-black/10 rounded-2xl overflow-hidden bg-white shadow-md">
+        <div className="mx-6 mb-2 border border-black/10 rounded-2xl overflow-hidden bg-white shadow-md flex-shrink-0">
           {orders.length === 0 ? (
             <p className="text-sm text-gray-400 p-4">Tidak ada order aktif</p>
           ) : (
@@ -186,7 +186,7 @@ export default function ChatRoom({ room, currentUser, otherUser }) {
       )}
 
       {/* Input */}
-      <div className="px-6 py-4 border-t border-black/10 flex items-center gap-2">
+      <div className="px-6 py-4 border-t border-black/10 flex items-center gap-2 flex-shrink-0">
         {/* Attach file */}
         <label className="cursor-pointer text-gray-400 hover:text-black transition-colors">
           📎

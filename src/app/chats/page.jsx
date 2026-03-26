@@ -78,13 +78,13 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <div className="sticky top-0 h-screen">
         <SideNav active="Chats" isOpen={isOpen} />
       </div>
 
-      <div className="flex flex-col flex-1">
-        <div className="sticky top-0 z-30 bg-white">
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="sticky top-0 z-30 bg-white flex-shrink-0">
           <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
         </div>
 
