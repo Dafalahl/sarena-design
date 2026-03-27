@@ -21,11 +21,19 @@ export default function DeliverModal({ order, onClose, onUpdate }) {
   }, []);
 
   const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-    setFile(selected);
-    setPreview(URL.createObjectURL(selected));
-  };
+      const selected = e.target.files[0];
+      if (!selected) return;
+
+      // Batas maksimal 10MB (10 * 1024 * 1024 bytes)
+      const maxSize = 10 * 1024 * 1024;
+      if (selected.size > maxSize) {
+        alert("Ukuran file terlalu besar! Maksimal 10MB.");
+        return;
+      }
+
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+    };
 
   const handleSubmit = async () => {
     if (!file) {

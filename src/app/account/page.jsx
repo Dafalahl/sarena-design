@@ -110,12 +110,20 @@ export default function AccountPage() {
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setSelectedFile(file);
-    setPreviewFile(URL.createObjectURL(file));
-    setShowUploadForm(true);
-  };
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Batas maksimal 5MB untuk foto portfolio (5 * 1024 * 1024 bytes)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert("Ukuran foto terlalu besar! Maksimal 5MB.");
+        return; // Batalkan proses upload
+      }
+
+      setSelectedFile(file);
+      setPreviewFile(URL.createObjectURL(file));
+      setShowUploadForm(true);
+    };
 
   const handleUploadPost = async () => {
     if (!selectedFile) return;
@@ -160,7 +168,13 @@ export default function AccountPage() {
     fetchPosts(user.id);
   };
 
-  if (loading) return <div className="min-h-screen bg-white" />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-500 font-medium animate-pulse">Memuat data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">

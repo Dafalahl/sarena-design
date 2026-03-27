@@ -144,7 +144,13 @@ export default function ChatPage() {
     checkAuth();
   }, []);
 
-  if (isAuthenticated === null) return <div className="min-h-screen bg-white" />;
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-500 font-medium animate-pulse">Memuat pesan...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

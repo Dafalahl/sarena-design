@@ -204,7 +204,13 @@ export default function OrdersPage() {
     { key: "rejected", label: "Rejected" },
   ];
 
-  if (isAuthenticated === null) return <div className="min-h-screen bg-white" />;
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-500 font-medium animate-pulse">Memuat data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">
