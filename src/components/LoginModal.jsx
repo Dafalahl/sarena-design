@@ -23,12 +23,12 @@ export default function LoginModal({ onClose }) {
 
   return (
     <>
-      {/* Backdrop — z-index di bawah SideNav (z-[60]) dan TopBar (z-50), mulai dari kanan SideNav */}
+      {/* Backdrop — z-index di bawah SideNav (z-[60]) dan TopBar (z-[50]) */}
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-45 pointer-events-none"
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-[40] pointer-events-none"
         onClick={onClose}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-46 pointer-events-none">
+      <div className="fixed inset-0 flex items-center justify-center z-[41] pointer-events-none">
         <div
           className="bg-[#D9D9D9] rounded-3xl p-10 shadow-md flex flex-col items-center gap-6 w-full max-w-sm pointer-events-auto"
           onClick={(e) => e.stopPropagation()}

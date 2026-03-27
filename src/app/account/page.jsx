@@ -6,6 +6,7 @@ import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 import EditProfileModal from "@/components/EditProfileModal";
 import PostDetailModal from "@/components/PostDetailModal";
+import BecomeDesignerModal from "@/components/BecomeDesignerModal";
 import Button from "@/components/ui/button";
 import AuthGuardModal from "@/components/AuthGuardModal";
 
@@ -17,6 +18,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBecomeDesignerModal, setShowBecomeDesignerModal] = useState(false);
 
   // Posts state
   const [posts, setPosts] = useState([]);
@@ -101,16 +103,10 @@ export default function AccountPage() {
     init();
   }, []);
 
-  const handleBecomeDesigner = async () => {
-    await supabase
-      .from("users")
-      .update({ is_designer: true })
-      .eq("id", user.id);
-    await supabase
-      .from("profiles")
-      .insert({ id: user.id, username: user.full_name });
+  const handleBecomeDesignerSuccess = async () => {
+    setShowBecomeDesignerModal(false);
     setIsDesigner(true);
-    fetchUser();
+    await fetchUser();
   };
 
   const handleFileSelect = (e) => {
@@ -270,7 +266,7 @@ export default function AccountPage() {
               <hr className="border-black/10" />
               <p className="text-sm text-gray-500">Ingin menjadi designer?</p>
               <button
-                onClick={handleBecomeDesigner}
+                onClick={() => setShowBecomeDesignerModal(true)}
                 className="py-3 border border-black rounded-lg hover:bg-black hover:text-white transition-colors"
               >
                 Become a Designer
@@ -359,6 +355,13 @@ export default function AccountPage() {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onDelete={() => handleDeletePost(selectedPost)}
+        />
+      )}
+      {showBecomeDesignerModal && (
+        <BecomeDesignerModal
+          user={user}
+          onClose={() => setShowBecomeDesignerModal(false)}
+          onSuccess={handleBecomeDesignerSuccess}
         />
       )}
       {isAuthenticated === false && <AuthGuardModal />}

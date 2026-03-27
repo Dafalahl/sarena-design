@@ -93,10 +93,10 @@ export default function DeliverModal({ order, onClose, onUpdate }) {
   return (
     <>
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-45 pointer-events-none"
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-60 pointer-events-none"
         onClick={onClose}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-46 pointer-events-none\">
+      <div className="fixed inset-0 flex items-center justify-center z-61 pointer-events-none\">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col"
           onClick={(e) => e.stopPropagation()}

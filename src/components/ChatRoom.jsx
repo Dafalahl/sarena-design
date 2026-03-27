@@ -68,7 +68,7 @@ export default function ChatRoom({ room, currentUser, otherUser }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const filePath = `chat/${room.id}/${Date.now()}_${file.name}`;
+    const filePath = `chats/${room.id}/${Date.now()}_${file.name}`;
     await supabase.storage.from("chat-files").upload(filePath, file);
     const { data: urlData } = supabase.storage
       .from("chat-files")
