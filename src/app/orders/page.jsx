@@ -182,6 +182,32 @@ export default function OrdersPage() {
     }
   };
 
+  const handleRevision = async () => {
+    try {
+      // 1. Kembalikan status ke in_progress di database
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: "in_progress" })
+        .eq("id", previewOrder.id);
+
+      if (error) throw error;
+
+      alert("Permintaan revisi dikirim! Desainer dapat mengupload ulang karya.");
+      
+      // 2. Update state lokal agar UI langsung berubah tanpa perlu reload
+      setOrders(orders.map(o => 
+        o.id === previewOrder.id ? { ...o, status: "in_progress" } : o
+      ));
+      
+      // 3. Tutup modal
+      setPreviewOrder(null);
+      setDeliverable(null);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal meminta revisi.");
+    }
+  };
+
   const handleGoToChat = async (order) => {
     try {
       const {
@@ -403,6 +429,7 @@ export default function OrdersPage() {
         deliverable={deliverable}
         onClose={handleCloseModal}
         onApprove={handleApprove}
+        onRevision={handleRevision}
       />
       
     </div>
