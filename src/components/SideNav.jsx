@@ -35,7 +35,7 @@ export default function SideNav({ active, isOpen }) {
   const filteredItems = navItems.filter(item => !item.designerOnly || isDesigner);
 
   return (
-    <aside className={`relative z-[60] h-full border-r border-gray-200 flex flex-col py-4 px-3 transition-all duration-300 ${isOpen ? "w-56" : "w-16"}`}>
+    <aside className={`relative z-50 bg-white h-full border-r border-gray-200 flex flex-col py-4 px-3 transition-all duration-300 ${isOpen ? "w-56" : "w-16"}`}>
       <div className="mb-8 px-2">
         <Link href="/">
           {isOpen

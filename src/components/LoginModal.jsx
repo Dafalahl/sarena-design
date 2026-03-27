@@ -1,10 +1,18 @@
-// Ini halaman login modal yang akan muncul ketika user klik login
-
+// src/components/LoginModal.jsx
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
-export default function LoginModal({ onClose }) {
+// Tambahkan isGuard sebagai prop
+export default function LoginModal({ onClose, isGuard = false }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleGoogleLogin = async () => {
     const getURL = () => {
       let url =
@@ -21,14 +29,21 @@ export default function LoginModal({ onClose }) {
     if (error) console.error("Error logging in:", error.message);
   };
 
-  return (
+  // Tentukan z-index berdasarkan mode
+  const zIndexBackdrop = isGuard ? "z-30" : "z-[100]";
+  const zIndexContent = isGuard ? "z-30" : "z-[101]";
+
+  const modalContent = (
     <>
-      {/* Backdrop — z-index di bawah SideNav (z-[60]) dan TopBar (z-[50]) */}
+      {/* Backdrop */}
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-[40] pointer-events-none"
-        onClick={onClose}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto ${zIndexBackdrop}`}
+        onClick={!isGuard ? onClose : undefined}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-[41] pointer-events-none">
+      {/* Modal Box */}
+      <div
+        className={`fixed inset-0 flex items-center justify-center pointer-events-none ${zIndexContent}`}
+      >
         <div
           className="bg-[#D9D9D9] rounded-3xl p-10 shadow-md flex flex-col items-center gap-6 w-full max-w-sm pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
@@ -56,7 +71,9 @@ export default function LoginModal({ onClose }) {
                 fill="#EA4335"
               />
             </svg>
-            <span className="font-normal text-black">Continue with Google</span>
+            <span className="font-normal text-black">
+              Continue with Google
+            </span>
           </button>
           <hr className="w-full border-black/40" />
           <p className="text-xs text-center text-black font-normal">
@@ -74,4 +91,8 @@ export default function LoginModal({ onClose }) {
       </div>
     </>
   );
+
+  // Gunakan Portal
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }

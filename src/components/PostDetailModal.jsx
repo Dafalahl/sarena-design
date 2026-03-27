@@ -1,17 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 
 export default function PostDetailModal({ post, onClose, onDelete, isOwner }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  const modalContent = (
     <>
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-45 pointer-events-none"
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-100 pointer-events-none"
         onClick={onClose}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-46 pointer-events-none">
+      <div className="fixed inset-0 flex items-center justify-center z-101 pointer-events-none">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
@@ -74,4 +76,6 @@ export default function PostDetailModal({ post, onClose, onDelete, isOwner }) {
       </div>
     </>
   );
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }
