@@ -2,101 +2,87 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import Button from "@/components/ui/button";
 
 export default function DeliverModal({ order, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
+  const [gdriveLink, setGdriveLink] = useState("");
   
-  // State untuk File Preview (Max 10MB)
-  const [previewFile, setPreviewFile] = useState(null);
-  const [previewObjectURL, setPreviewObjectURL] = useState(null);
+  // State untuk multiple preview files
+  const [previewFiles, setPreviewFiles] = useState([]);
+  const [previewObjectURLs, setPreviewObjectURLs] = useState([]);
 
-  // State untuk File Asli (ZIP/Source/Max 100MB+)
-  const [originalFile, setOriginalFile] = useState(null);
+  const handlePreviewFilesChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-  // Handle Pilih File Preview
-  const handlePreviewFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-
-    // Batas max 10MB untuk preview
-    if (selected.size > 10 * 1024 * 1024) {
-      alert("Ukuran file preview terlalu besar! Maksimal 10MB. Gunakan resolusi rendah.");
+    if (files.length > 5) {
+      alert("Maksimal 5 gambar preview!");
       return;
     }
-    setPreviewFile(selected);
-    setPreviewObjectURL(URL.createObjectURL(selected));
-  };
 
-  // Handle Pilih File Asli
-  const handleOriginalFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-    // Batas max bisa Anda atur, misal 150MB
-    if (selected.size > 150 * 1024 * 1024) {
-      alert("Ukuran file asli terlalu besar! Maksimal 150MB.");
+    // Validasi ukuran max 5MB per gambar
+    const overSize = files.some(file => file.size > 5 * 1024 * 1024);
+    if (overSize) {
+      alert("Ada gambar yang lebih dari 5MB. Silakan kompres dulu.");
       return;
     }
-    setOriginalFile(selected);
+
+    setPreviewFiles(files);
+    setPreviewObjectURLs(files.map(file => URL.createObjectURL(file)));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!previewFile || !originalFile) {
-      alert("Anda harus mengupload kedua file (Preview & Original)!");
+    if (previewFiles.length === 0 || !gdriveLink) {
+      alert("Harap masukkan gambar preview dan link GDrive!");
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. Upload File Preview ke bucket Publik
-      const previewFileName = `preview_${Date.now()}_${order.id}_${previewFile.name}`;
-      const { data: previewUpload, error: previewUploadError } = await supabase.storage
-        .from("deliverables") // Asumsi bucket ini Public
-        .upload(previewFileName, previewFile);
+      // 1. Upload semua gambar preview ke Supabase Storage (Public)
+      const uploadedUrls = [];
+      for (const file of previewFiles) {
+        const fileName = `preview_${Date.now()}_${order.id}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("deliverables")
+          .upload(fileName, file);
 
-      if (previewUploadError) throw previewUploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: { publicUrl: previewPublicUrl } } = supabase.storage
-        .from("deliverables")
-        .getPublicUrl(previewFileName);
+        const { data: { publicUrl } } = supabase.storage
+          .from("deliverables")
+          .getPublicUrl(fileName);
+          
+        uploadedUrls.push(publicUrl);
+      }
 
-      // 2. Upload File Asli ke bucket Privat (Baru)
-      const originalFileName = `original_${Date.now()}_${order.id}_${originalFile.name}`;
-      const { data: originalUpload, error: originalUploadError } = await supabase.storage
-        .from("original-deliverables") // Wadah Privat
-        .upload(originalFileName, originalFile);
-
-      if (originalUploadError) throw originalUploadError;
-
-      // Catatan: getPublicUrl di bucket privat akan error/tidak bisa diakses publik.
-      // Kita simpan saja path-nya dulu di DB.
-      const originalPath = originalFileName;
-
-      // 3. Simpan data ke tabel deliverables
+      // 2. Simpan ke database
       const { error: dbError } = await supabase.from("deliverables").insert({
         order_id: order.id,
         creator_id: order.creator_id,
-        file_url: previewPublicUrl, // Link Gambar Pecah
-        original_file_url: originalPath, // Path File Asli (Rahasia)
-        original_file_name: originalFile.name,
+        preview_urls: uploadedUrls, // Array banyak gambar
+        original_file_url: gdriveLink, // Link GDrive (Aman sampai di-approve)
         note: note,
       });
 
       if (dbError) throw dbError;
 
-      // 4. Update status order menjadi delivered
+      // 3. Update status order menjadi delivered & catat waktu (updated_at)
       await supabase
         .from("orders")
-        .update({ status: "delivered" })
+        .update({ 
+          status: "delivered",
+          updated_at: new Date().toISOString() // Wajib untuk patokan 24 jam!
+        })
         .eq("id", order.id);
 
       onSuccess();
     } catch (error) {
       console.error(error);
-      alert("Gagal mengirim hasil desain. Pastikan koneksi stabil.");
+      alert("Gagal mengirim hasil desain.");
     } finally {
       setLoading(false);
     }
@@ -106,80 +92,59 @@ export default function DeliverModal({ order, onClose, onSuccess }) {
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
       <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh]"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <form onSubmit={handleSubmit} className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh]">
           <div className="px-8 pt-8 pb-4">
             <h2 className="text-2xl font-bold">Kirim Hasil Desain</h2>
-            <p className="text-sm text-gray-500 mt-1">Order: {order.title}</p>
+            <p className="text-sm text-gray-500">Order: {order.title}</p>
           </div>
           <hr className="border-black/10 mx-8" />
 
           <div className="px-8 py-6 flex flex-col gap-6 overflow-y-auto">
-            {/* INPUT 1: Preview (Mencegah Pencurian) */}
+            {/* Input Multiple Images */}
             <div>
-              <label className="block text-sm font-semibold mb-2">1. File Preview (Gambar Pecah/Watermark)</label>
-              <div className="bg-red-50 border border-red-200 p-3 rounded-xl mb-3">
-                <p className="text-xs text-red-600 font-medium">
-                  Upload gambar resolusi rendah atau ber-watermark di sini. Klien bisa menyimpan gambar ini tanpa membayar.
-                </p>
-              </div>
+              <label className="block text-sm font-semibold mb-2">1. Gambar Preview (Bisa pilih s.d 5 gambar)</label>
               <input
                 type="file"
-                accept="image/png, image/jpeg"
+                accept="image/png, image/jpeg, image/jpg"
+                multiple
                 required
-                onChange={handlePreviewFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-black hover:file:bg-gray-300"
+                onChange={handlePreviewFilesChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-gray-200"
               />
-              {previewObjectURL && (
-                <img src={previewObjectURL} alt="preview" className="w-full mt-3 rounded-xl max-h-40 object-contain bg-black/5" />
-              )}
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {previewObjectURLs.map((url, i) => (
+                  <img key={i} src={url} alt={`prev-${i}`} className="w-full h-20 object-cover rounded-xl bg-black/5" />
+                ))}
+              </div>
             </div>
 
             <hr className="border-black/10" />
 
-            {/* INPUT 2: File Asli (Menahan Pembayaran) */}
+            {/* Input Link GDrive */}
             <div>
-              <label className="block text-sm font-semibold mb-2">2. File Asli (Source File / High-Res / ZIP)</label>
-              <div className="bg-green-50 border border-green-200 p-3 rounded-xl mb-3">
-                <p className="text-xs text-green-600 font-medium">
-                  Klien TIDAK BISA mengakses file ini sampai dana cair ke dompet Anda.
-                </p>
+              <label className="block text-sm font-semibold mb-2">2. Link Google Drive (File Asli)</label>
+              <div className="bg-green-50 border border-green-200 p-3 rounded-xl mb-2">
+                <p className="text-xs text-green-700">Pastikan setting akses GDrive Anda adalah "Siapa saja yang memiliki link dapat melihat".</p>
               </div>
               <input
-                type="file"
-                accept=".zip,.rar,.psd,.ai,.tiff,.png,.jpg,.jpeg" // Sesuaikan accept-nya
+                type="url"
                 required
-                onChange={handleOriginalFileChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
+                placeholder="https://drive.google.com/..."
+                value={gdriveLink}
+                onChange={(e) => setGdriveLink(e.target.value)}
+                className="w-full p-3 rounded-xl border outline-none"
               />
-              {originalFile && (
-                <p className="text-sm mt-2 font-mono text-gray-700">Terpilih: {originalFile.name}</p>
-              )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Catatan untuk Klien</label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="w-full p-4 border border-gray-200 rounded-xl bg-white outline-none focus:border-black"
-                rows={3}
-                placeholder="Tuliskan pesan singkat..."
-              />
+              <label className="block text-sm font-semibold mb-2">Catatan Klien</label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} className="w-full p-3 border rounded-xl outline-none" rows={2} />
             </div>
           </div>
 
-          <hr className="border-black/10 mx-8" />
-          <div className="flex items-center justify-between px-8 py-6 rounded-b-3xl">
-            <button type="button" onClick={onClose} className="px-6 py-2 border rounded-xl hover:bg-gray-100 transition-colors font-medium">
-              Batal
-            </button>
-            <button type="submit" disabled={loading} className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium disabled:opacity-50">
-              {loading ? "Mengirim..." : "Kirim Hasil"}
-            </button>
+          <div className="flex justify-between px-8 py-6 rounded-b-3xl bg-white border-t">
+            <button type="button" onClick={onClose} className="px-6 py-2 border rounded-xl hover:bg-gray-100 font-medium">Batal</button>
+            <button type="submit" disabled={loading} className="px-6 py-2 bg-black text-white rounded-xl font-medium">{loading ? "Mengirim..." : "Kirim"}</button>
           </div>
         </form>
       </div>
