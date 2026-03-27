@@ -160,123 +160,132 @@ export default function AccountPage() {
     fetchPosts(user.id);
   };
 
-  if (loading) return <div />;
+  if (loading) return <div className="min-h-screen bg-white" />;
 
   return (
     <div className="flex min-h-screen">
+      {/* SideNav tetap dirender */}
       <div className="sticky top-0 h-screen">
         <SideNav active="Account" isOpen={isNavOpen} />
       </div>
 
       <div className="flex flex-col flex-1">
+        {/* TopBar tetap dirender */}
         <div className="sticky top-0 z-50 bg-white">
           <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
         </div>
 
-        <main className="flex flex-col">
-          {/* Banner */}
-          {isDesigner && (
-            <div className="mx-6 mt-6 mb-6 rounded-2xl">
-              <div className="bg-[#D9D9D9]/70 rounded-2xl h-40 overflow-hidden">
-                {profile?.banner_url ? (
-                  <img
-                    src={profile.banner_url}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full" />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Avatar + Nama + Tombol Edit */}
-          <div className="flex items-center gap-4 px-8 mt-6 mb-8 justify-between">
-            <div className="flex items-center gap-4">
-              <img
-                src={user?.avatar_url}
-                className="w-24 h-24 rounded-full shadow-md"
-              />
-              <div>
-                <p className="text-2xl font-bold">{user?.full_name}</p>
-                {isDesigner && profile?.username && (
-                  <p className="text-sm text-gray-400">@{profile.username}</p>
-                )}
-                {isDesigner && profile?.bio && (
-                  <p className="text-sm text-gray-500 mt-1 max-w-xs">
-                    {profile.bio}
-                  </p>
-                )}
-              </div>
-            </div>
-            {isDesigner && (
-              <Button
-                label="Edit Profil"
-                onClick={() => setShowEditModal(true)}
-              />
-            )}
-          </div>
-
-          {/* Portfolio */}
-          {isDesigner && (
+        {/* Container Konten dengan class 'relative' agar AuthGuardModal terkurung di sini */}
+        <main className="relative flex-1 flex flex-col bg-white">
+          {isAuthenticated === false ? (
+            <AuthGuardModal />
+          ) : (
             <>
-              <div className="relative flex items-center px-8 mb-6 mt-4">
-                <hr className="flex-1 border-black/10" />
-                <span className="absolute left-1/2 -translate-x-1/2 bg-white px-4 text-sm font-medium">
-                  Portfolio
-                </span>
-                <hr className="flex-1 border-black/10" />
-              </div>
-
-              {/* Masonry Grid */}
-              <div className="columns-2 md:columns-3 lg:columns-4 gap-4 px-8 mb-16 space-y-4">
-                {/* Tombol Upload */}
-                <div
-                  className="break-inside-avoid rounded-2xl h-48 bg-[#D9D9D9]/40 border-2 border-dashed border-black/20 flex flex-col items-center justify-center cursor-pointer hover:bg-[#D9D9D9]/70 transition-colors"
-                  onClick={() => document.getElementById("postInput").click()}
-                >
-                  <span className="text-3xl text-black/30">+</span>
-                  <p className="text-sm text-black/40 mt-1">Upload foto</p>
-                  <input
-                    id="postInput"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                </div>
-
-                {/* Post Cards */}
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="break-inside-avoid rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border-[0.2px] border-black/30"
-                    onClick={() => setSelectedPost(post)}
-                  >
-                    <img src={post.image_url} className="w-full object-cover" />
+              {/* Banner */}
+              {isDesigner && (
+                <div className="mx-6 mt-6 mb-6 rounded-2xl">
+                  <div className="bg-[#D9D9D9]/70 rounded-2xl h-40 overflow-hidden">
+                    {profile?.banner_url ? (
+                      <img
+                        src={profile.banner_url}
+                        className="w-full h-full object-cover"
+                        alt="Banner"
+                      />
+                    ) : (
+                      <div className="w-full h-full" />
+                    )}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
+                </div>
+              )}
 
-          {/* Become a Designer */}
-          {!isDesigner && (
-            <div className="flex flex-col gap-2 px-8 mt-8 max-w-sm">
-              <hr className="border-black/10" />
-              <p className="text-sm text-gray-500">Ingin menjadi designer?</p>
-              <button
-                onClick={() => setShowBecomeDesignerModal(true)}
-                className="py-3 border border-black rounded-lg hover:bg-black hover:text-white transition-colors"
-              >
-                Become a Designer
-              </button>
-            </div>
+              {/* Avatar + Nama + Tombol Edit */}
+              <div className="flex items-center gap-4 px-8 mt-6 mb-8 justify-between">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={user?.avatar_url || "/default-avatar.png"}
+                    className="w-24 h-24 rounded-full shadow-md object-cover"
+                    alt="Avatar"
+                  />
+                  <div>
+                    <p className="text-2xl font-bold">{user?.full_name}</p>
+                    {isDesigner && profile?.username && (
+                      <p className="text-sm text-gray-400">@{profile.username}</p>
+                    )}
+                    {isDesigner && profile?.bio && (
+                      <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                        {profile.bio}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {isDesigner && (
+                  <Button
+                    label="Edit Profil"
+                    onClick={() => setShowEditModal(true)}
+                  />
+                )}
+              </div>
+
+              {/* Portfolio */}
+              {isDesigner && (
+                <>
+                  <div className="relative flex items-center px-8 mb-6 mt-4">
+                    <hr className="flex-1 border-black/10" />
+                    <span className="absolute left-1/2 -translate-x-1/2 bg-white px-4 text-sm font-medium">
+                      Portfolio
+                    </span>
+                    <hr className="flex-1 border-black/10" />
+                  </div>
+
+                  {/* Masonry Grid */}
+                  <div className="columns-2 md:columns-3 lg:columns-4 gap-4 px-8 mb-16 space-y-4">
+                    <div
+                      className="break-inside-avoid rounded-2xl h-48 bg-[#D9D9D9]/40 border-2 border-dashed border-black/20 flex flex-col items-center justify-center cursor-pointer hover:bg-[#D9D9D9]/70 transition-colors"
+                      onClick={() => document.getElementById("postInput").click()}
+                    >
+                      <span className="text-3xl text-black/30">+</span>
+                      <p className="text-sm text-black/40 mt-1">Upload foto</p>
+                      <input
+                        id="postInput"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                    </div>
+
+                    {posts.map((post) => (
+                      <div
+                        key={post.id}
+                        className="break-inside-avoid rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border-[0.2px] border-black/30"
+                        onClick={() => setSelectedPost(post)}
+                      >
+                        <img src={post.image_url} className="w-full object-cover" alt="Post" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Become a Designer */}
+              {!isDesigner && (
+                <div className="flex flex-col gap-2 px-8 mt-8 max-w-sm">
+                  <hr className="border-black/10" />
+                  <p className="text-sm text-gray-500">Ingin menjadi designer?</p>
+                  <button
+                    onClick={() => setShowBecomeDesignerModal(true)}
+                    className="py-3 border border-black rounded-lg hover:bg-black hover:text-white transition-colors"
+                  >
+                    Become a Designer
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
 
-      {/* Edit Modal */}
+      {/* Modals tetap berada di root component */}
       {showEditModal && (
         <EditProfileModal
           user={user}
@@ -289,14 +298,13 @@ export default function AccountPage() {
         />
       )}
 
-      {/* Upload Form Modal */}
       {showUploadForm && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
             onClick={() => setShowUploadForm(false)}
           />
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="fixed inset-0 flex items-center justify-center z-[70] pointer-events-none">
             <div
               className="bg-[#F0F0F0] rounded-3xl w-full max-w-md shadow-xl pointer-events-auto flex flex-col"
               onClick={(e) => e.stopPropagation()}
@@ -310,6 +318,7 @@ export default function AccountPage() {
                   <img
                     src={previewFile}
                     className="w-full rounded-xl object-contain max-h-64"
+                    alt="Preview"
                   />
                 )}
                 <div className="flex flex-col gap-1">
@@ -349,7 +358,6 @@ export default function AccountPage() {
         </>
       )}
 
-      {/* Post Detail Modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
@@ -357,6 +365,7 @@ export default function AccountPage() {
           onDelete={() => handleDeletePost(selectedPost)}
         />
       )}
+
       {showBecomeDesignerModal && (
         <BecomeDesignerModal
           user={user}
@@ -364,7 +373,6 @@ export default function AccountPage() {
           onSuccess={handleBecomeDesignerSuccess}
         />
       )}
-      {isAuthenticated === false && <AuthGuardModal />}
     </div>
   );
 }

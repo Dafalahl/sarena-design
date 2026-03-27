@@ -9,7 +9,7 @@ import TopBar from "@/components/TopBar";
 import ChatRoom from "@/components/ChatRoom";
 import AuthGuardModal from "@/components/AuthGuardModal";
 
-function ChatContent({ isOpen }) {
+function ChatContent() {
   const searchParams = useSearchParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [rooms, setRooms] = useState([]);
@@ -53,7 +53,6 @@ function ChatContent({ isOpen }) {
     setRooms(data || []);
     setLoading(false);
 
-    // Auto-select room berdasarkan query param
     const targetDesignerId = searchParams.get("designerId");
     if (targetDesignerId && data) {
       const targetRoom = data.find(
@@ -80,7 +79,6 @@ function ChatContent({ isOpen }) {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* Kolom kiri — list room */}
       <div className="w-72 border-r border-black/10 flex flex-col overflow-y-auto">
         {loading ? (
           <div className="p-4 text-gray-400 text-sm">Memuat...</div>
@@ -98,6 +96,7 @@ function ChatContent({ isOpen }) {
                 <img
                   src={other?.avatar_url}
                   className="w-10 h-10 rounded-full object-cover shrink-0"
+                  alt="avatar"
                 />
                 <div className="flex flex-col min-w-0">
                   <p className="font-medium text-sm truncate">
@@ -113,7 +112,6 @@ function ChatContent({ isOpen }) {
         )}
       </div>
 
-      {/* Kolom kanan — isi chat */}
       <div className="flex-1 flex flex-col">
         {selectedRoom ? (
           <ChatRoom
@@ -146,35 +144,38 @@ export default function ChatPage() {
     checkAuth();
   }, []);
 
-  if (isAuthenticated === null) return null;
+  if (isAuthenticated === null) return <div className="min-h-screen bg-white" />;
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* SideNav tetap dirender meskipun belum login */}
       <div className="sticky top-0 h-screen">
         <SideNav active="Chats" isOpen={isOpen} />
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden">
+        {/* TopBar tetap dirender meskipun belum login */}
         <div className="sticky top-0 z-50 bg-white">
           <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
         </div>
 
-        {isAuthenticated ? (
-          <Suspense
-            fallback={
-              <div className="flex flex-1 items-center justify-center">
-                Loading chats...
-              </div>
-            }
-          >
-            <ChatContent />
-          </Suspense>
-        ) : (
-          <div className="flex-1" />
-        )}
+        {/* Gunakan 'relative' agar AuthGuardModal terkunci di area konten ini saja */}
+        <main className="relative flex-1 flex flex-col overflow-hidden bg-white">
+          {!isAuthenticated ? (
+            <AuthGuardModal />
+          ) : (
+            <Suspense
+              fallback={
+                <div className="flex flex-1 items-center justify-center">
+                  Loading chats...
+                </div>
+              }
+            >
+              <ChatContent />
+            </Suspense>
+          )}
+        </main>
       </div>
-
-      {isAuthenticated === false && <AuthGuardModal />}
     </div>
   );
 }

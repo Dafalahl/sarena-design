@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { createPortal } from "react-dom";
 
@@ -24,6 +24,15 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
     profile?.banner_url || null,
   );
 
+  // FIXED: Trigger mounted untuk Portal dan mengunci scroll body
+  useEffect(() => {
+    setMounted(true);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -39,88 +48,140 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
 
     let bannerUrl = profile?.banner_url;
 
-    // Upload banner jika ada file baru
-    if (bannerFile) {
-      const fileExt = bannerFile.name.split(".").pop();
-      const filePath = `${user.id}/banner.${fileExt}`;
+    try {
+      // Upload banner jika ada file baru
+      if (bannerFile) {
+        const fileExt = bannerFile.name.split(".").pop();
+        const filePath = `${user.id}/banner.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("banners")
-        .upload(filePath, bannerFile, { upsert: true });
+        const { error: uploadError } = await supabase.storage
+          .from("banners")
+          .upload(filePath, bannerFile, { upsert: true });
 
-      if (uploadError) {
-        alert("Gagal upload banner");
-        setSaving(false);
-        return;
+        if (uploadError) {
+          alert("Gagal upload banner");
+          setSaving(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("banners")
+          .getPublicUrl(filePath);
+
+        bannerUrl = urlData.publicUrl;
       }
 
-      const { data: urlData } = supabase.storage
-        .from("banners")
-        .getPublicUrl(filePath);
+      // Update nama di tabel users
+      await supabase
+        .from("users")
+        .update({ full_name: fullName })
+        .eq("id", user.id);
 
-      bannerUrl = urlData.publicUrl;
+      await supabase
+        .from("profiles")
+        .update({
+          username,
+          bio,
+          banner_url: bannerUrl,
+          disbursement_channel: disbursementChannel,
+          disbursement_account: disbursementAccount,
+          disbursement_name: disbursementName,
+        })
+        .eq("id", user.id);
+      
+      onSaved();
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan saat menyimpan profil.");
+    } finally {
+      setSaving(false);
     }
-
-    // Update nama di tabel users
-    await supabase
-      .from("users")
-      .update({ full_name: fullName })
-      .eq("id", user.id);
-
-    await supabase
-      .from("profiles")
-      .update({
-        username,
-        bio,
-        banner_url: bannerUrl,
-        disbursement_channel: disbursementChannel,
-        disbursement_account: disbursementAccount,
-        disbursement_name: disbursementName,
-      })
-      .eq("id", user.id);
-    setSaving(false);
-    onSaved();
   };
 
+  if (!mounted) return null;
+
   const modalContent = (
-    <>
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      {/* LAYER 1: Backdrop Overlay (Blur) 
+          - fixed inset-0: Menutupi seluruh layar (Sidebar & Topbar)
+          - onClick: Menutup modal saat area blur diklik
+      */}
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-100 pointer-events-none"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-101 pointer-events-none">
+      {/* LAYER 2: Modal Container */}
+      <div className="relative w-full max-w-lg m-4 pointer-events-none flex items-center justify-center">
         <div
-          className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
+          className="bg-[#F0F0F0] rounded-3xl w-full shadow-xl pointer-events-auto flex flex-col max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat konten diklik
         >
           {/* Header */}
-          <div className="px-8 pt-8 pb-4">
+          <div className="px-8 pt-8 pb-4 flex justify-between items-center">
             <h2 className="text-2xl font-bold">Edit Profil</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-black p-1">
+              ✕
+            </button>
           </div>
 
           <hr className="border-black/10 mx-8" />
 
-          {/* Form */}
-          <div className="px-8 py-6 flex flex-col gap-4">
+          {/* Form - Scrollable Area */}
+          <div className="px-8 py-6 flex flex-col gap-4 overflow-y-auto">
+            {/* Banner Section */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm text-gray-500 font-medium">Banner Profil</label>
+              <div className="relative border border-black/10 rounded-xl overflow-hidden bg-white group">
+                {bannerPreview ? (
+                  <img
+                    src={bannerPreview}
+                    className="w-full h-32 object-cover"
+                    alt="Banner preview"
+                  />
+                ) : (
+                  <div className="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                    Belum ada banner
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                   <button
+                    type="button"
+                    onClick={() => document.getElementById("bannerInput").click()}
+                    className="bg-white/90 px-4 py-2 rounded-lg text-xs font-semibold shadow-sm hover:bg-white"
+                  >
+                    Ganti Banner
+                  </button>
+                </div>
+                <input
+                  id="bannerInput"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBannerChange}
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-500">Nama Lengkap</label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none bg-white"
+                className="border border-black/10 rounded-lg px-3 py-2 outline-none bg-white focus:border-black transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-500">Username</label>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none bg-white"
-              />
+              <div className="flex items-center border border-black/10 rounded-lg bg-white overflow-hidden focus-within:border-black transition-colors">
+                <span className="pl-3 text-gray-400 text-sm">@</span>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                  className="flex-1 px-1 py-2 outline-none bg-white"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -128,47 +189,20 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none resize-none h-28 bg-white"
+                placeholder="Ceritakan sedikit tentang dirimu..."
+                className="border border-black/10 rounded-lg px-3 py-2 outline-none resize-none h-24 bg-white focus:border-black transition-colors text-sm"
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-500">Banner</label>
-              <div className="border border-black/20 rounded-lg overflow-hidden bg-white">
-                {bannerPreview && (
-                  <img
-                    src={bannerPreview}
-                    className="w-full h-32 object-cover"
-                  />
-                )}
-                <div className="p-3">
-                  <input
-                    id="bannerInput"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleBannerChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      document.getElementById("bannerInput").click()
-                    }
-                    className="w-full text-sm px-3 py-2 border border-black/20 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    {bannerFile ? "Ganti Banner" : "Pilih Banner"}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <h3 className="font-semibold">Info Pencairan Dana</h3>
+            <hr className="border-black/10 my-2" />
+            <h3 className="font-semibold text-gray-700">Info Pencairan Dana</h3>
 
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-500">Metode Pencairan</label>
               <select
                 value={disbursementChannel}
                 onChange={(e) => setDisbursementChannel(e.target.value)}
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none bg-white"
+                className="border border-black/10 rounded-lg px-3 py-2 outline-none bg-white focus:border-black transition-colors"
               >
                 <option value="">Pilih metode</option>
                 <option value="GOPAY">GoPay</option>
@@ -183,9 +217,7 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
 
             <div className="flex flex-col gap-1">
               <label className="text-sm text-gray-500">
-                {disbursementChannel === "GOPAY" ||
-                disbursementChannel === "OVO" ||
-                disbursementChannel === "DANA"
+                {["GOPAY", "OVO", "DANA"].includes(disbursementChannel)
                   ? "Nomor HP"
                   : "Nomor Rekening"}
               </label>
@@ -193,23 +225,21 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
                 value={disbursementAccount}
                 onChange={(e) => setDisbursementAccount(e.target.value)}
                 placeholder={
-                  disbursementChannel === "GOPAY"
+                  ["GOPAY", "OVO", "DANA"].includes(disbursementChannel)
                     ? "08xxxxxxxxxx"
                     : "Nomor rekening"
                 }
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none bg-white"
+                className="border border-black/10 rounded-lg px-3 py-2 outline-none bg-white focus:border-black transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-gray-500">
-                Nama Pemilik Rekening
-              </label>
+              <label className="text-sm text-gray-500">Nama Pemilik Rekening</label>
               <input
                 value={disbursementName}
                 onChange={(e) => setDisbursementName(e.target.value)}
                 placeholder="Nama sesuai rekening"
-                className="border border-black/20 rounded-lg px-3 py-2 outline-none bg-white"
+                className="border border-black/10 rounded-lg px-3 py-2 outline-none bg-white focus:border-black transition-colors"
               />
             </div>
           </div>
@@ -217,25 +247,25 @@ export default function EditProfileModal({ user, profile, onClose, onSaved }) {
           <hr className="border-black/10 mx-8" />
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-8 py-6">
+          <div className="flex items-center justify-between px-8 py-6 bg-gray-50/50 rounded-b-3xl">
             <button
               onClick={onClose}
-              className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
             >
               Batal
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium disabled:opacity-50"
+              className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium text-sm disabled:opacity-50"
             >
-              {saving ? "Menyimpan..." : "Simpan"}
+              {saving ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
-  if (!mounted) return null;
+
   return createPortal(modalContent, document.body);
 }
