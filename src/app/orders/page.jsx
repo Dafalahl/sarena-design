@@ -350,6 +350,17 @@ export default function OrdersPage() {
                             Harga: Rp {order.amount.toLocaleString("id-ID")}
                           </p>
                         )}
+                        {/* SOLUSI CELAH 3: Peringatan Refund untuk Pembeli */}
+                        {order.status === "in_progress" && (
+                          <div className="mt-3 bg-red-50 border border-red-100 p-3 rounded-xl max-w-lg">
+                            <p className="text-xs text-red-600 flex items-start gap-1.5">
+                              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                              <span>
+                                Dana Anda saat ini aman di sistem Escrow Sarena. Jika desainer melewati batas <strong>Deadline</strong> atau tidak dapat dihubungi, silakan hubungi <strong>admin@sarena.id</strong> (WA: 0812-xxxx-xxxx) untuk proses <strong>Refund (Pengembalian Dana)</strong>.
+                              </span>
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
