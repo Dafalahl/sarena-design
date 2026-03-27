@@ -61,27 +61,51 @@ export default function DeliverModal({ order, onClose, onUpdate }) {
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("deliverables")
-          .getPublicUrl(fileName);
-          
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("deliverables").getPublicUrl(fileName);
+
         uploadedUrls.push(publicUrl);
       }
 
-      const { error: dbError } = await supabase.from("deliverables").insert({
-        order_id: order.id,
-        preview_urls: uploadedUrls,
-        original_file_url: gdriveLink,
-        note: note,
-      });
+      // 2. Simpan ke database (Cek apakah Revisi atau Baru)
+      const { data: existingDeliverable } = await supabase
+        .from("deliverables")
+        .select("id")
+        .eq("order_id", order.id)
+        .maybeSingle();
+
+      let dbError;
+
+      if (existingDeliverable) {
+        // Jika ini hasil revisi, UPDATE data yang lama
+        const { error } = await supabase
+          .from("deliverables")
+          .update({
+            preview_urls: uploadedUrls,
+            original_file_url: gdriveLink,
+            note: note,
+          })
+          .eq("id", existingDeliverable.id);
+        dbError = error;
+      } else {
+        // Jika ini kiriman pertama kali, INSERT data baru
+        const { error } = await supabase.from("deliverables").insert({
+          order_id: order.id,
+          preview_urls: uploadedUrls,
+          original_file_url: gdriveLink,
+          note: note,
+        });
+        dbError = error;
+      }
 
       if (dbError) throw dbError;
 
       await supabase
         .from("orders")
-        .update({ 
+        .update({
           status: "delivered",
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString(),
         })
         .eq("id", order.id);
 

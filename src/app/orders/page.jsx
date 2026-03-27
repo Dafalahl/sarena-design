@@ -141,21 +141,26 @@ export default function OrdersPage() {
     }
   };
 
-  const handlePreview = async (order) => {
+const handlePreview = async (order) => {
     try {
-      const { data: deliverableData } = await supabase
+      // Ubah dari .single() menjadi ambil 1 data paling baru
+      const { data: deliverables, error } = await supabase
         .from("deliverables")
         .select("*")
         .eq("order_id", order.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
-      if (deliverableData) {
-        setDeliverable(deliverableData);
+      if (error) throw error;
+
+      if (deliverables && deliverables.length > 0) {
+        setDeliverable(deliverables[0]);
         setPreviewOrder(order);
       } else {
         alert("Tidak ada hasil yang ditemukan");
       }
     } catch (error) {
+      console.error(error);
       alert("Gagal memuat hasil");
     }
   };
