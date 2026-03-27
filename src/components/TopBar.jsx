@@ -47,40 +47,41 @@ export default function TopBar({ onToggleNav }) {
         />
       </div>
 
-      {/* Avatar + Dropdown */}
-      <div className="relative ml-auto">
-        <button onClick={() => setShowDropdown(!showDropdown)}>
-          {user?.avatar_url
-            ? <img src={user.avatar_url} className="w-9 h-9 rounded-full object-cover" />
-            : <div className="w-9 h-9 rounded-full bg-gray-300" />
-          }
-        </button>
+      {/* Avatar + Dropdown — hanya tampil kalau sudah login */}
+      {user && (
+        <div className="relative ml-auto">
+          <button onClick={() => setShowDropdown(!showDropdown)}>
+            {user?.avatar_url
+              ? <img src={user.avatar_url} className="w-9 h-9 rounded-full object-cover" />
+              : <div className="w-9 h-9 rounded-full bg-gray-300" />
+            }
+          </button>
 
-        {showDropdown && (
-          <>
-            {/* Tutup dropdown kalau klik luar */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setShowDropdown(false)}
-            />
-            <div className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border border-black/10 w-40 overflow-hidden">
-              <button
-                onClick={() => { router.push("/account"); setShowDropdown(false); }}
-                className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors"
-              >
-                Account
-              </button>
-              <hr className="border-black/10" />
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+          {showDropdown && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowDropdown(false)}
+              />
+              <div className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border border-black/10 w-40 overflow-hidden">
+                <button
+                  onClick={() => { router.push("/account"); setShowDropdown(false); }}
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Account
+                </button>
+                <hr className="border-black/10" />
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

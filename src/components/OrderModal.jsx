@@ -17,18 +17,18 @@ export default function OrderModal({ designer, profile, onClose }) {
 
     setLoading(true);
 
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
 
-    const { error } = await supabase
-      .from("orders")
-      .insert({
-        client_id: authUser.id,
-        creator_id: designer.id,
-        title,
-        brief_message: description,
-        deadline,
-        status: "incoming",
-      });
+    const { error } = await supabase.from("orders").insert({
+      client_id: authUser.id,
+      creator_id: designer.id,
+      title,
+      brief_message: description,
+      deadline,
+      status: "incoming",
+    });
 
     if (error) {
       console.error(error);
@@ -44,10 +44,13 @@ export default function OrderModal({ designer, profile, onClose }) {
   return (
     <>
       {/* Background blur */}
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
+      <div
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-45 pointer-events-none"
+        onClick={onClose}
+      />
 
       {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <div className="fixed inset-0 flex items-center justify-center z-46 pointer-events-none">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col"
           onClick={(e) => e.stopPropagation()}
@@ -68,7 +71,9 @@ export default function OrderModal({ designer, profile, onClose }) {
                 className="w-14 h-14 rounded-full object-cover"
               />
               <div>
-                <p className="font-semibold text-lg">{profile?.username || designer?.full_name}</p>
+                <p className="font-semibold text-lg">
+                  {profile?.username || designer?.full_name}
+                </p>
                 <p className="text-sm text-gray-600">Logo and Brand Identity</p>
               </div>
             </div>
@@ -108,7 +113,8 @@ export default function OrderModal({ designer, profile, onClose }) {
 
             {/* Info escrow */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
-              Pembayaran hanya dilakukan setelah desainer menyetujui order kamu. Dana akan ditahan hingga kamu approve hasil karya.
+              Pembayaran hanya dilakukan setelah desainer menyetujui order kamu.
+              Dana akan ditahan hingga kamu approve hasil karya.
             </div>
           </div>
 

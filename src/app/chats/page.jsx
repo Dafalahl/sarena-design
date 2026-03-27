@@ -7,10 +7,10 @@ import { supabase } from "@/lib/supabase";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 import ChatRoom from "@/components/ChatRoom";
+import AuthGuardModal from "@/components/AuthGuardModal";
 
-function ChatContent() {
+function ChatContent({ isOpen }) {
   const searchParams = useSearchParams();
-  const [isOpen, setIsOpen] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -79,74 +79,102 @@ function ChatContent() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="sticky top-0 h-screen">
-        <SideNav active="Chats" isOpen={isOpen} />
+    <div className="flex flex-1 overflow-hidden">
+      {/* Kolom kiri — list room */}
+      <div className="w-72 border-r border-black/10 flex flex-col overflow-y-auto">
+        {loading ? (
+          <div className="p-4 text-gray-400 text-sm">Memuat...</div>
+        ) : rooms.length === 0 ? (
+          <div className="p-4 text-gray-400 text-sm">Belum ada chat.</div>
+        ) : (
+          rooms.map((room) => {
+            const other = getOtherUser(room);
+            return (
+              <div
+                key={room.id}
+                onClick={() => setSelectedRoom(room)}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${selectedRoom?.id === room.id ? "bg-gray-100" : ""}`}
+              >
+                <img
+                  src={other?.avatar_url}
+                  className="w-10 h-10 rounded-full object-cover shrink-0"
+                />
+                <div className="flex flex-col min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {other?.full_name}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {getLastMessage(room)}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="sticky top-0 z-30 bg-white flex-shrink-0">
-          <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
-        </div>
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* Kolom kiri — list room */}
-          <div className="w-72 border-r border-black/10 flex flex-col overflow-y-auto">
-            {loading ? (
-              <div className="p-4 text-gray-400 text-sm">Memuat...</div>
-            ) : rooms.length === 0 ? (
-              <div className="p-4 text-gray-400 text-sm">Belum ada chat.</div>
-            ) : (
-              rooms.map((room) => {
-                const other = getOtherUser(room);
-                return (
-                  <div
-                    key={room.id}
-                    onClick={() => setSelectedRoom(room)}
-                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${selectedRoom?.id === room.id ? "bg-gray-100" : ""}`}
-                  >
-                    <img
-                      src={other?.avatar_url}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {other?.full_name}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate">
-                        {getLastMessage(room)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+      {/* Kolom kanan — isi chat */}
+      <div className="flex-1 flex flex-col">
+        {selectedRoom ? (
+          <ChatRoom
+            room={selectedRoom}
+            currentUser={currentUser}
+            otherUser={getOtherUser(selectedRoom)}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+            Pilih chat untuk memulai
           </div>
-
-          {/* Kolom kanan — isi chat */}
-          <div className="flex-1 flex flex-col">
-            {selectedRoom ? (
-              <ChatRoom
-                room={selectedRoom}
-                currentUser={currentUser}
-                otherUser={getOtherUser(selectedRoom)}
-              />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-                Pilih chat untuk memulai
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function ChatPage() {
+  const [isOpen, setIsOpen] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isAuthenticated === null) return null;
+
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading chats...</div>}>
-      <ChatContent />
-    </Suspense>
+    <div className="flex h-screen overflow-hidden">
+      <div className="sticky top-0 h-screen">
+        <SideNav active="Chats" isOpen={isOpen} />
+      </div>
+
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="sticky top-0 z-50 bg-white">
+          <TopBar onToggleNav={() => setIsOpen(!isOpen)} />
+        </div>
+
+        {isAuthenticated ? (
+          <Suspense
+            fallback={
+              <div className="flex flex-1 items-center justify-center">
+                Loading chats...
+              </div>
+            }
+          >
+            <ChatContent />
+          </Suspense>
+        ) : (
+          <div className="flex-1" />
+        )}
+      </div>
+
+      {isAuthenticated === false && <AuthGuardModal />}
+    </div>
   );
 }

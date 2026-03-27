@@ -7,8 +7,10 @@ import TopBar from "@/components/TopBar";
 import EditProfileModal from "@/components/EditProfileModal";
 import PostDetailModal from "@/components/PostDetailModal";
 import Button from "@/components/ui/button";
+import AuthGuardModal from "@/components/AuthGuardModal";
 
 export default function AccountPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading, true = authenticated, false = not authenticated
   const [user, setUser] = useState(null);
   const [isDesigner, setIsDesigner] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -25,23 +27,6 @@ export default function AccountPage() {
   const [previewFile, setPreviewFile] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const fetchUser = async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) { setLoading(false); return; }
-
-    const { data } = await supabase.from("users").select("*").eq("id", authUser.id).single();
-    setUser(data);
-    setIsDesigner(data?.is_designer || false);
-
-    if (data?.is_designer) {
-      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", authUser.id).single();
-      setProfile(profileData);
-      fetchPosts(authUser.id);
-    }
-
-    setLoading(false);
-  };
-
   const fetchPosts = async (designerId) => {
     const { data } = await supabase
       .from("posts")
@@ -51,11 +36,79 @@ export default function AccountPage() {
     setPosts(data || []);
   };
 
-  useEffect(() => { fetchUser(); }, []);
+  const fetchUser = async () => {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (!authUser) return;
+
+    const { data } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", authUser.id)
+      .single();
+    setUser(data);
+    setIsDesigner(data?.is_designer || false);
+
+    if (data?.is_designer) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+      setProfile(profileData);
+      await fetchPosts(authUser.id);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      // Check authentication first
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Fetch user data
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+      setUser(data);
+      setIsDesigner(data?.is_designer || false);
+
+      if (data?.is_designer) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .single();
+        setProfile(profileData);
+        await fetchPosts(authUser.id);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, []);
 
   const handleBecomeDesigner = async () => {
-    await supabase.from("users").update({ is_designer: true }).eq("id", user.id);
-    await supabase.from("profiles").insert({ id: user.id, username: user.full_name });
+    await supabase
+      .from("users")
+      .update({ is_designer: true })
+      .eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .insert({ id: user.id, username: user.full_name });
     setIsDesigner(true);
     fetchUser();
   };
@@ -85,7 +138,9 @@ export default function AccountPage() {
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("posts").getPublicUrl(filePath);
+    const { data: urlData } = supabase.storage
+      .from("posts")
+      .getPublicUrl(filePath);
 
     await supabase.from("posts").insert({
       designer_id: user.id,
@@ -118,7 +173,7 @@ export default function AccountPage() {
       </div>
 
       <div className="flex flex-col flex-1">
-        <div className="sticky top-0 z-30 bg-white">
+        <div className="sticky top-0 z-50 bg-white">
           <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
         </div>
 
@@ -128,7 +183,10 @@ export default function AccountPage() {
             <div className="mx-6 mt-6 mb-6 rounded-2xl">
               <div className="bg-[#D9D9D9]/70 rounded-2xl h-40 overflow-hidden">
                 {profile?.banner_url ? (
-                  <img src={profile.banner_url} className="w-full h-full object-cover" />
+                  <img
+                    src={profile.banner_url}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full" />
                 )}
@@ -139,19 +197,27 @@ export default function AccountPage() {
           {/* Avatar + Nama + Tombol Edit */}
           <div className="flex items-center gap-4 px-8 mt-6 mb-8 justify-between">
             <div className="flex items-center gap-4">
-              <img src={user?.avatar_url} className="w-24 h-24 rounded-full shadow-md" />
+              <img
+                src={user?.avatar_url}
+                className="w-24 h-24 rounded-full shadow-md"
+              />
               <div>
                 <p className="text-2xl font-bold">{user?.full_name}</p>
                 {isDesigner && profile?.username && (
                   <p className="text-sm text-gray-400">@{profile.username}</p>
                 )}
                 {isDesigner && profile?.bio && (
-                  <p className="text-sm text-gray-500 mt-1 max-w-xs">{profile.bio}</p>
+                  <p className="text-sm text-gray-500 mt-1 max-w-xs">
+                    {profile.bio}
+                  </p>
                 )}
               </div>
             </div>
             {isDesigner && (
-              <Button label="Edit Profil" onClick={() => setShowEditModal(true)} />
+              <Button
+                label="Edit Profil"
+                onClick={() => setShowEditModal(true)}
+              />
             )}
           </div>
 
@@ -168,7 +234,6 @@ export default function AccountPage() {
 
               {/* Masonry Grid */}
               <div className="columns-2 md:columns-3 lg:columns-4 gap-4 px-8 mb-16 space-y-4">
-
                 {/* Tombol Upload */}
                 <div
                   className="break-inside-avoid rounded-2xl h-48 bg-[#D9D9D9]/40 border-2 border-dashed border-black/20 flex flex-col items-center justify-center cursor-pointer hover:bg-[#D9D9D9]/70 transition-colors"
@@ -192,10 +257,7 @@ export default function AccountPage() {
                     className="break-inside-avoid rounded-2xl overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border-[0.2px] border-black/30"
                     onClick={() => setSelectedPost(post)}
                   >
-                    <img
-                      src={post.image_url}
-                      className="w-full object-cover"
-                    />
+                    <img src={post.image_url} className="w-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -224,14 +286,20 @@ export default function AccountPage() {
           user={user}
           profile={profile}
           onClose={() => setShowEditModal(false)}
-          onSaved={() => { setShowEditModal(false); fetchUser(); }}
+          onSaved={() => {
+            setShowEditModal(false);
+            fetchUser();
+          }}
         />
       )}
 
       {/* Upload Form Modal */}
       {showUploadForm && (
         <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setShowUploadForm(false)} />
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => setShowUploadForm(false)}
+          />
           <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
             <div
               className="bg-[#F0F0F0] rounded-3xl w-full max-w-md shadow-xl pointer-events-auto flex flex-col"
@@ -243,10 +311,15 @@ export default function AccountPage() {
               <hr className="border-black/10 mx-8" />
               <div className="px-8 py-6 flex flex-col gap-4">
                 {previewFile && (
-                  <img src={previewFile} className="w-full rounded-xl object-contain max-h-64" />
+                  <img
+                    src={previewFile}
+                    className="w-full rounded-xl object-contain max-h-64"
+                  />
                 )}
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-gray-500">Caption (opsional)</label>
+                  <label className="text-sm text-gray-500">
+                    Caption (opsional)
+                  </label>
                   <textarea
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
@@ -258,7 +331,11 @@ export default function AccountPage() {
               <hr className="border-black/10 mx-8" />
               <div className="flex items-center justify-between px-8 py-6">
                 <button
-                  onClick={() => { setShowUploadForm(false); setPreviewFile(null); setSelectedFile(null); }}
+                  onClick={() => {
+                    setShowUploadForm(false);
+                    setPreviewFile(null);
+                    setSelectedFile(null);
+                  }}
                   className="px-6 py-2 border border-black/20 rounded-xl hover:bg-gray-200 transition-colors font-medium"
                 >
                   Batal
@@ -284,6 +361,7 @@ export default function AccountPage() {
           onDelete={() => handleDeletePost(selectedPost)}
         />
       )}
+      {isAuthenticated === false && <AuthGuardModal />}
     </div>
   );
 }
