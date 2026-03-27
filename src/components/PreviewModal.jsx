@@ -45,9 +45,11 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
               </div>
             )}
             
+            {/* Peringatan Auto-Approve (Solusi Celah 6) */}
             <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl mt-2">
               <p className="text-xs text-yellow-700">
-                ⚠️ Tekan <strong>Approve</strong> jika desain sudah sesuai. Dana akan diteruskan ke desainer dan Anda akan mendapatkan link Download File Asli (High-Res/Source).
+                ⚠️ Tekan <strong>Approve</strong> jika desain sudah sesuai agar dana diteruskan ke desainer dan link download file asli terbuka. <br/><br/>
+                <strong>Aturan Sarena:</strong> Jika Anda tidak melakukan Approve atau Minta Revisi dalam waktu <strong>3x24 Jam</strong> setelah desain dikirim, maka order akan dianggap selesai secara otomatis oleh Admin dan dana akan dicairkan ke desainer.
               </p>
             </div>
           </div>
