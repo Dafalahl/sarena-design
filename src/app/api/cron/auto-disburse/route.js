@@ -26,7 +26,11 @@ export async function GET(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY 
     );
 
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    // UJI COBA: Hitung waktu 5 Menit yang lalu
+    // Rumus: 5 menit * 60 detik * 1000 milidetik
+    const yesterday = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
     const { data: expiredOrders, error: fetchError } = await supabaseAdmin
       .from("orders")
