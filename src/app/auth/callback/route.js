@@ -10,7 +10,7 @@ export async function GET(request) {
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const isDev = process.env.NODE_ENV === "development";
   let origin = isDev
-    ? "http://localhost:3000"
+    ? "https://sarena-design-lake.vercel.app/"
     : forwardedHost
       ? `${forwardedProto}://${forwardedHost}`
       : requestUrl.origin;

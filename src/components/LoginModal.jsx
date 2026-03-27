@@ -17,7 +17,7 @@ export default function LoginModal({ onClose, isGuard = false }) {
       let url =
         typeof window !== "undefined"
           ? window.location.origin
-          : "http://localhost:3000";
+          : "https://sarena-design-lake.vercel.app/";
       url = url.endsWith("/") ? url : `${url}/`;
       return url;
     };
