@@ -35,71 +35,57 @@ export default function OrdersPage() {
       setIsAuthenticated(true);
 
       // Fetch orders
-      const fetchOrders = async () => {
-        const statusMap = {
-          active: ["incoming", "negotiating", "in_progress", "delivered"],
-          completed: ["completed"],
-          rejected: ["rejected"],
+  const fetchOrders = async () => {
+    const statusMap = {
+      active: ["incoming", "negotiating", "in_progress", "delivered"],
+      completed: ["completed"],
+      rejected: ["rejected"],
+    };
+
+    const { data: ordersData } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("client_id", authUser.id)
+      .in("status", statusMap[activeTab]);
+
+    if (!ordersData) return;
+
+    const ordersWithUsers = await Promise.all(
+      ordersData.map(async (order) => {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("full_name, avatar_url")
+          .eq("id", order.creator_id)
+          .single();
+
+        let gdriveLink = null;
+
+        // Jika order sudah selesai, kita ambil link GDrive-nya
+        if (order.status === "completed") {
+          const { data: deliverableData } = await supabase
+            .from("deliverables")
+            .select("original_file_url") // Ambil link GDrive
+            .eq("order_id", order.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (deliverableData) {
+            gdriveLink = deliverableData.original_file_url;
+          }
+        }
+
+        return {
+          ...order,
+          creator: userData,
+          gdrive_link: gdriveLink, // Simpan link GDrive ke dalam object order
         };
+      })
+    );
 
-        const { data: ordersData } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("client_id", authUser.id)
-          .in("status", statusMap[activeTab]);
-
-        if (!ordersData) return;
-
-        const ordersWithUsers = await Promise.all(
-          ordersData.map(async (order) => {
-            const { data: userData } = await supabase
-              .from("users")
-              .select("full_name, avatar_url")
-              .eq("id", order.creator_id)
-              .single();
-
-            let deliverableUrl = null;
-            let originalDownloadUrl = null; // State baru
-            let originalFileName = null; // State baru
-
-            if (order.status === "completed") {
-              const { data: deliverableData } = await supabase
-                .from("deliverables")
-                .select("*") // Ubah select(*) agar dapat semua kolom
-                .eq("order_id", order.id)
-                .single();
-              
-              if(deliverableData){
-                deliverableUrl = deliverableData.file_url;
-                originalFileName = deliverableData.original_file_name;
-
-                // TIKET KEAMANAN DITERBITKAN: 
-                // Buat link privat berjangka waktu (signed URL) selama 15 menit (900 detik)
-                if(deliverableData.original_file_url) {
-                  const { data: signedData, error: signedError } = await supabase.storage
-                    .from("original-deliverables") // Bucket privat
-                    .createSignedUrl(deliverableData.original_file_url, 900); // Valid 15 menit
-
-                  if(signedData){
-                    originalDownloadUrl = signedData.signedUrl;
-                  }
-                }
-              }
-            }
-
-            return {
-              ...order,
-              creator: userData,
-              deliverable_url: deliverableUrl,
-              secure_download_url: originalDownloadUrl, // Simpan signed URL rahasia
-              original_file_name: originalFileName, // Simpan nama file rahasia
-            };
-          }),
-        );
-
-        setOrders(ordersWithUsers);
-        setLoading(false);
-      };
+    setOrders(ordersWithUsers);
+    setLoading(false);
+  };
 
       await fetchOrders();
     };
@@ -395,19 +381,22 @@ const handlePreview = async (order) => {
                           </button>
                         )}
 
-                      {order.status === "completed" &&
-                        order.secure_download_url && ( // <--- Ganti dengan signed URL
-                          <a
-                            href={order.secure_download_url} // <--- Link rahasia berjangka waktu
-                            download={order.original_file_name} // Kasih nama file asli
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-6 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium text-sm flex items-center gap-2"
-                          >
-                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Download File Asli
-                          </a>
-                        )}
+                      {/* TAMPILAN JIKA ORDER SELESAI */}
+                      {order.status === "completed" && (
+                        <>
+                          {order.gdrive_link && (
+                            <a
+                              href={order.gdrive_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-6 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium text-sm flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                              Buka Google Drive
+                            </a>
+                          )}
+                        </>
+                      )}
 
                         {order.status !== "rejected" && (
                           <button
