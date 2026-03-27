@@ -8,8 +8,10 @@ import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
 import OrderDetailModal from "@/components/OrderDetailModal";
 import DeliverModal from "@/components/DeliverModal";
+import AuthGuardModal from "@/components/AuthGuardModal";
 
 export default function YourWorkPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading, true = authenticated, false = not authenticated
   const [activeTab, setActiveTab] = useState("incoming");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,55 +21,78 @@ export default function YourWorkPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) return;
+    const init = async () => {
+      // Check authentication first
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
 
-      const statusMap = {
-        incoming: "incoming",
-        inprogress: "in_progress",
-        completed: "completed",
+      if (!authUser) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Fetch orders
+      const fetchOrders = async () => {
+        const statusMap = {
+          incoming: "incoming",
+          inprogress: "in_progress",
+          completed: "completed",
+        };
+
+        const { data: ordersData } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("creator_id", authUser.id)
+          .eq("status", statusMap[activeTab]);
+
+        if (!ordersData) return;
+
+        const ordersWithUsers = await Promise.all(
+          ordersData.map(async (order) => {
+            const { data: userData } = await supabase
+              .from("users")
+              .select("full_name, avatar_url")
+              .eq("id", order.client_id)
+              .single();
+            return { ...order, users: userData };
+          }),
+        );
+
+        setOrders(ordersWithUsers);
+        setLoading(false);
       };
 
-      const { data: ordersData } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("creator_id", authUser.id)
-        .eq("status", statusMap[activeTab]);
-
-      if (!ordersData) return;
-
-      const ordersWithUsers = await Promise.all(
-        ordersData.map(async (order) => {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("full_name, avatar_url")
-            .eq("id", order.client_id)
-            .single();
-          return { ...order, users: userData };
-        }),
-      );
-
-      setOrders(ordersWithUsers);
-      setLoading(false);
+      await fetchOrders();
     };
 
-    fetchOrders();
+    init();
   }, [activeTab]);
 
   const handleTerima = async (orderId) => {
-    await supabase.from("orders").update({ status: "in_progress" }).eq("id", orderId);
+    await supabase
+      .from("orders")
+      .update({ status: "in_progress" })
+      .eq("id", orderId);
     setOrders(orders.filter((o) => o.id !== orderId));
   };
 
   const handleTolak = async (orderId) => {
-    await supabase.from("orders").update({ status: "rejected" }).eq("id", orderId);
+    await supabase
+      .from("orders")
+      .update({ status: "rejected" })
+      .eq("id", orderId);
     setOrders(orders.filter((o) => o.id !== orderId));
   };
 
   // Desainer adalah creator, jadi client_id = lawan bicara
   const handleGoToChat = async (order) => {
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
     if (!authUser) return;
     await getOrCreateRoom(order.client_id, authUser.id);
     router.push(`/chats?designerId=${authUser.id}`);
@@ -78,8 +103,18 @@ export default function YourWorkPage() {
       onClick={() => handleGoToChat(order)}
       className="w-10 h-10 flex items-center justify-center bg-black text-white rounded-xl hover:bg-black/80 transition-colors"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
     </button>
   );
@@ -96,7 +131,7 @@ export default function YourWorkPage() {
         <SideNav active="Your Work" isOpen={isNavOpen} />
       </div>
       <div className="flex flex-col flex-1">
-        <div className="sticky top-0 z-30 bg-white">
+        <div className="sticky top-0 z-50 bg-white">
           <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
         </div>
 
@@ -110,7 +145,9 @@ export default function YourWorkPage() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`pb-3 text-sm font-medium transition-colors relative ${
-                  activeTab === tab.key ? "text-black" : "text-gray-400 hover:text-black"
+                  activeTab === tab.key
+                    ? "text-black"
+                    : "text-gray-400 hover:text-black"
                 }`}
               >
                 {tab.label}
@@ -140,12 +177,16 @@ export default function YourWorkPage() {
 
                   <div className="flex-1">
                     <p className="font-semibold">{order.title}</p>
-                    <p className="text-sm text-gray-500">From {order.users?.full_name}</p>
+                    <p className="text-sm text-gray-500">
+                      From {order.users?.full_name}
+                    </p>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-sm text-gray-500">
                         Deadline:{" "}
                         {new Date(order.deadline).toLocaleDateString("id-ID", {
-                          day: "numeric", month: "short", year: "numeric",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
                         })}
                       </p>
                       {activeTab === "incoming" && (
@@ -179,9 +220,7 @@ export default function YourWorkPage() {
                     )}
 
                     {/* Tombol Chat — incoming & inprogress saja */}
-                    {activeTab !== "completed" && (
-                      <ChatButton order={order} />
-                    )}
+                    {activeTab !== "completed" && <ChatButton order={order} />}
                   </div>
                 </div>
               ))}
@@ -209,6 +248,9 @@ export default function YourWorkPage() {
             }}
           />
         )}
+
+        {/* Modal muncul kalau belum login */}
+        {isAuthenticated === false && <AuthGuardModal />}
       </div>
     </div>
   );

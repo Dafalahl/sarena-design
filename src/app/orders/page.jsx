@@ -6,8 +6,10 @@ import { supabase } from "@/lib/supabase";
 import { goToChat } from "@/lib/chat";
 import SideNav from "@/components/SideNav";
 import TopBar from "@/components/TopBar";
+import AuthGuardModal from "@/components/AuthGuardModal";
 
 export default function OrdersPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading, true = authenticated, false = not authenticated
   const [activeTab, setActiveTab] = useState("active");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,60 +19,73 @@ export default function OrdersPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const init = async () => {
+      // Check authentication first
       const {
         data: { user: authUser },
       } = await supabase.auth.getUser();
-      if (!authUser) return;
 
-      const statusMap = {
-        active: ["incoming", "negotiating", "in_progress", "delivered"],
-        completed: ["completed"],
-        rejected: ["rejected"],
+      if (!authUser) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+
+      // Fetch orders
+      const fetchOrders = async () => {
+        const statusMap = {
+          active: ["incoming", "negotiating", "in_progress", "delivered"],
+          completed: ["completed"],
+          rejected: ["rejected"],
+        };
+
+        // fetch orders dulu
+        const { data: ordersData, error } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("client_id", authUser.id)
+          .in("status", statusMap[activeTab]);
+
+        if (!ordersData) return;
+
+        // fetch user data untuk setiap order
+        const ordersWithUsers = await Promise.all(
+          ordersData.map(async (order) => {
+            const { data: userData } = await supabase
+              .from("users")
+              .select("full_name, avatar_url")
+              .eq("id", order.creator_id)
+              .single();
+
+            // Fetch deliverable kalau status completed
+            let deliverableUrl = null;
+            if (order.status === "completed") {
+              const { data: deliverableData } = await supabase
+                .from("deliverables")
+                .select("file_url")
+                .eq("order_id", order.id)
+                .single();
+              deliverableUrl = deliverableData?.file_url ?? null;
+            }
+
+            return {
+              ...order,
+              creator: userData,
+              deliverable_url: deliverableUrl,
+            };
+          }),
+        );
+
+        setOrders(ordersWithUsers);
+        setLoading(false);
       };
 
-      // fetch orders dulu
-      const { data: ordersData, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("client_id", authUser.id)
-        .in("status", statusMap[activeTab]);
-
-      if (!ordersData) return;
-
-      // fetch user data untuk setiap order
-      const ordersWithUsers = await Promise.all(
-        ordersData.map(async (order) => {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("full_name, avatar_url")
-            .eq("id", order.creator_id)
-            .single();
-
-          // Fetch deliverable kalau status completed
-          let deliverableUrl = null;
-          if (order.status === "completed") {
-            const { data: deliverableData } = await supabase
-              .from("deliverables")
-              .select("file_url")
-              .eq("order_id", order.id)
-              .single();
-            deliverableUrl = deliverableData?.file_url ?? null;
-          }
-
-          return {
-            ...order,
-            creator: userData,
-            deliverable_url: deliverableUrl,
-          };
-        }),
-      );
-
-      setOrders(ordersWithUsers);
-      setLoading(false);
+      await fetchOrders();
     };
 
-    fetchOrders();
+    init();
   }, [activeTab]);
 
   const handleSetuju = async (order) => {
@@ -222,7 +237,7 @@ export default function OrdersPage() {
         <SideNav active="Orders" isOpen={isNavOpen} />
       </div>
       <div className="flex flex-col flex-1">
-        <div className="sticky top-0 z-30 bg-white">
+        <div className="sticky top-0 z-50 bg-white">
           <TopBar onToggleNav={() => setIsNavOpen(!isNavOpen)} />
         </div>
 
@@ -423,6 +438,9 @@ export default function OrdersPage() {
             </div>
           </>
         )}
+
+        {/* Modal muncul kalau belum login */}
+        {isAuthenticated === false && <AuthGuardModal />}
       </div>
     </div>
   );

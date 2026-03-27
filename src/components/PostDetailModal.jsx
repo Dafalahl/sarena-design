@@ -7,8 +7,11 @@ export default function PostDetailModal({ post, onClose, onDelete, isOwner }) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <div
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-45 pointer-events-none"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 flex items-center justify-center z-46 pointer-events-none">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
@@ -40,7 +43,9 @@ export default function PostDetailModal({ post, onClose, onDelete, isOwner }) {
             )}
             <p className="text-xs text-gray-400">
               {new Date(post.created_at).toLocaleDateString("id-ID", {
-                day: "numeric", month: "long", year: "numeric",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
               })}
             </p>
           </div>
