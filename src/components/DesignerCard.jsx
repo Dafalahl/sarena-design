@@ -16,7 +16,7 @@ export default function DesignerCard({ designer }) {
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
+          <div className="absolute inset-0 w-full h-full bg-linear-to-br from-gray-200 to-gray-300" />
         )}
 
         {/* Gradasi bawah supaya teks tetap terbaca */}

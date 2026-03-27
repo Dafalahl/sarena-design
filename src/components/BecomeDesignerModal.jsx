@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { createPortal } from "react-dom";
 
 export default function BecomeDesignerModal({ user, onClose, onSuccess }) {
   const [fullName, setFullName] = useState(user?.full_name || "");
@@ -11,6 +12,7 @@ export default function BecomeDesignerModal({ user, onClose, onSuccess }) {
   const [disbursementName, setDisbursementName] = useState("");
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mounted, setMounted] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -49,13 +51,13 @@ export default function BecomeDesignerModal({ user, onClose, onSuccess }) {
     onSuccess();
   };
 
-  return (
+  const modalContent = (
     <>
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100"
         onClick={onClose}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-[81] pointer-events-none">
+      <div className="fixed inset-0 flex items-center justify-center z-101 pointer-events-none">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
@@ -209,4 +211,7 @@ export default function BecomeDesignerModal({ user, onClose, onSuccess }) {
       </div>
     </>
   );
+
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }

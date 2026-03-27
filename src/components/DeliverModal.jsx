@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { createPortal } from "react-dom";
 
 export default function DeliverModal({ order, onClose, onUpdate }) {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -90,13 +92,13 @@ export default function DeliverModal({ order, onClose, onUpdate }) {
     onClose();
   };
 
-  return (
+  const modalContent = (
     <>
       <div
-        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-60 pointer-events-none"
+        className="fixed top-0 right-0 bottom-0 left-56 bg-black/40 backdrop-blur-sm z-100 pointer-events-none"
         onClick={onClose}
       />
-      <div className="fixed inset-0 flex items-center justify-center z-61 pointer-events-none\">
+      <div className="fixed inset-0 flex items-center justify-center z-101 pointer-events-none\">
         <div
           className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col"
           onClick={(e) => e.stopPropagation()}
@@ -174,4 +176,6 @@ export default function DeliverModal({ order, onClose, onUpdate }) {
       </div>
     </>
   );
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }
