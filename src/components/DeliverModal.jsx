@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { createPortal } from "react-dom";
 
-export default function DeliverModal({ order, onClose, onSuccess }) {
+export default function DeliverModal({ order, onClose, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
   const [gdriveLink, setGdriveLink] = useState("");
@@ -85,7 +85,7 @@ export default function DeliverModal({ order, onClose, onSuccess }) {
         })
         .eq("id", order.id);
 
-      onSuccess();
+      onUpdate();
     } catch (error) {
       console.error(error);
       alert("Gagal mengirim hasil desain.");
