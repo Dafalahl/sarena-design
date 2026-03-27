@@ -8,15 +8,29 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
 
   useEffect(() => {
     setMounted(true);
+    // Tambahkan overflow hidden agar background tidak scroll
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, []);
 
-  if (!order || !deliverable) return null;
+  if (!mounted || !order || !deliverable) return null;
 
   const modalContent = (
-    <>
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]" onClick={onClose} />
-      <div className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-4">
-        <div className="bg-[#F0F0F0] rounded-3xl w-full max-w-lg shadow-xl pointer-events-auto flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+      {/* Overlay blur yang menutupi seluruh layar */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" 
+        onClick={onClose} 
+      />
+      
+      {/* Container Modal */}
+      <div className="relative w-full max-w-lg m-4 pointer-events-none flex items-center justify-center">
+        <div 
+          className="bg-[#F0F0F0] rounded-3xl w-full shadow-xl pointer-events-auto flex flex-col max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="px-8 pt-8 pb-4">
             <h2 className="text-2xl font-bold">Preview Desain</h2>
             <p className="text-sm text-gray-500">Order: {order.title}</p>
@@ -24,7 +38,6 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
           <hr className="border-black/10 mx-8" />
           
           <div className="px-8 py-6 flex flex-col gap-4 overflow-y-auto">
-            {/* Galeri Gambar */}
             <div className="grid grid-cols-2 gap-3">
               {deliverable.preview_urls?.map((url, index) => (
                 <img key={index} src={url} className="w-full rounded-xl object-cover h-32 bg-black/5" alt="preview" />
@@ -47,17 +60,16 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
           </div>
           
           <div className="flex items-center justify-between px-8 py-6 bg-gray-50 rounded-b-3xl border-t">
-            <button onClick={onClose} className="px-6 py-2 border rounded-xl font-medium">Tutup</button>
+            <button onClick={onClose} className="px-6 py-2 border rounded-xl font-medium text-sm">Tutup</button>
             <div className="flex gap-3">
-              <button onClick={onRevision} className="px-6 py-2 border-2 border-red-500 text-red-500 rounded-xl font-medium">Revisi</button>
-              <button onClick={onApprove} className="px-6 py-2 bg-black text-white rounded-xl font-medium shadow-md shadow-green-500/20">Approve ✓</button>
+              <button onClick={onRevision} className="px-6 py-2 border-2 border-red-500 text-red-500 rounded-xl font-medium text-sm">Revisi</button>
+              <button onClick={onApprove} className="px-6 py-2 bg-black text-white rounded-xl font-medium shadow-md text-sm">Approve ✓</button>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 
-  if (!mounted) return null;
   return createPortal(modalContent, document.body);
 }
