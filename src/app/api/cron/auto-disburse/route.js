@@ -6,14 +6,7 @@ export async function GET(request) {
     const authHeader = request.headers.get('authorization');
     const expectedSecret = process.env.CRON_SECRET;
     
-    // LOGIKA DETEKTIF: Kita cek apa yang salah
     if (authHeader !== `Bearer ${expectedSecret}`) {
-      // Print ke log server Vercel
-      console.error("==== CRON AUTH ERROR ====");
-      console.error("Yang diterima API (authHeader):", `"${authHeader}"`);
-      console.error("Yang ada di Vercel (env)   :", `"${expectedSecret}"`);
-      console.error("=========================");
-
       return NextResponse.json({ 
         error: 'Unauthorized', 
         alasan: 'Kata sandi tidak cocok.',
@@ -26,10 +19,7 @@ export async function GET(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY 
     );
 
-    // const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-    // UJI COBA: Hitung waktu 5 Menit yang lalu
-    // Rumus: 5 menit * 60 detik * 1000 milidetik
+    // Hitung waktu (Gunakan 24 jam untuk Production, atau 5 Menit untuk Uji Coba)
     const yesterday = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
     const { data: expiredOrders, error: fetchError } = await supabaseAdmin
@@ -43,11 +33,36 @@ export async function GET(request) {
       return NextResponse.json({ message: "Tidak ada order yang expired hari ini." });
     }
 
+    // --- BAGIAN YANG DIPERBAIKI ---
+    // Dapatkan Base URL (Domain Vercel atau Localhost) untuk memanggil API lain
+    const protocol = request.headers.get("x-forwarded-proto") || "https";
+    const host = request.headers.get("host");
+    const baseUrl = `${protocol}://${host}`;
+
     const results = [];
+    
     for (const order of expiredOrders) {
-      await supabaseAdmin.from("orders").update({ status: "completed" }).eq("id", order.id);
-      results.push(`Order ${order.id} otomatis dicairkan.`);
+      // Jangan update database manual di sini.
+      // Panggil API Disburse Anda yang akan mengurus Xendit + Update Database!
+      try {
+        const disburseReq = await fetch(`${baseUrl}/api/disburse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: order.id }),
+        });
+
+        const disburseData = await disburseReq.json();
+
+        if (disburseReq.ok && disburseData.success) {
+          results.push(`Order ${order.id} sukses dicairkan via Xendit.`);
+        } else {
+          results.push(`Order ${order.id} GAGAL dicairkan Xendit: ${disburseData.error}`);
+        }
+      } catch (err) {
+        results.push(`Order ${order.id} GAGAL dipanggil: ${err.message}`);
+      }
     }
+    // --- AKHIR BAGIAN YANG DIPERBAIKI ---
 
     return NextResponse.json({ success: true, processed: results });
 
