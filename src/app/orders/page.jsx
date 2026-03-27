@@ -59,19 +59,40 @@ export default function OrdersPage() {
               .single();
 
             let deliverableUrl = null;
+            let originalDownloadUrl = null; // State baru
+            let originalFileName = null; // State baru
+
             if (order.status === "completed") {
               const { data: deliverableData } = await supabase
                 .from("deliverables")
-                .select("file_url")
+                .select("*") // Ubah select(*) agar dapat semua kolom
                 .eq("order_id", order.id)
                 .single();
-              deliverableUrl = deliverableData?.file_url ?? null;
+              
+              if(deliverableData){
+                deliverableUrl = deliverableData.file_url;
+                originalFileName = deliverableData.original_file_name;
+
+                // TIKET KEAMANAN DITERBITKAN: 
+                // Buat link privat berjangka waktu (signed URL) selama 15 menit (900 detik)
+                if(deliverableData.original_file_url) {
+                  const { data: signedData, error: signedError } = await supabase.storage
+                    .from("original-deliverables") // Bucket privat
+                    .createSignedUrl(deliverableData.original_file_url, 900); // Valid 15 menit
+
+                  if(signedData){
+                    originalDownloadUrl = signedData.signedUrl;
+                  }
+                }
+              }
             }
 
             return {
               ...order,
               creator: userData,
               deliverable_url: deliverableUrl,
+              secure_download_url: originalDownloadUrl, // Simpan signed URL rahasia
+              original_file_name: originalFileName, // Simpan nama file rahasia
             };
           }),
         );
@@ -332,18 +353,19 @@ export default function OrdersPage() {
                           </button>
                         )}
 
-                        {order.status === "completed" &&
-                          order.deliverable_url && (
-                            <a
-                              href={order.deliverable_url}
-                              download
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-6 py-2 bg-black text-white rounded-xl hover:bg-black/80 transition-colors font-medium"
-                            >
-                              Download
-                            </a>
-                          )}
+                      {order.status === "completed" &&
+                        order.secure_download_url && ( // <--- Ganti dengan signed URL
+                          <a
+                            href={order.secure_download_url} // <--- Link rahasia berjangka waktu
+                            download={order.original_file_name} // Kasih nama file asli
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-6 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium text-sm flex items-center gap-2"
+                          >
+                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download File Asli
+                          </a>
+                        )}
 
                         {order.status !== "rejected" && (
                           <button
