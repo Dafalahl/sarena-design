@@ -8,7 +8,7 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
 
   useEffect(() => {
     setMounted(true);
-    // Tambahkan overflow hidden agar background tidak scroll
+    // Mengunci scroll pada body agar tidak bergerak saat modal aktif
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "unset";
@@ -18,14 +18,15 @@ export default function PreviewModal({ order, deliverable, onClose, onApprove, o
   if (!mounted || !order || !deliverable) return null;
 
   const modalContent = (
+    /* Menggunakan z-[9999] agar berada di atas TopBar dan Sidebar */
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Overlay blur yang menutupi seluruh layar */}
+      {/* Overlay Background - Klik untuk menutup */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" 
         onClick={onClose} 
       />
       
-      {/* Container Modal */}
+      {/* Kontainer Modal */}
       <div className="relative w-full max-w-lg m-4 pointer-events-none flex items-center justify-center">
         <div 
           className="bg-[#F0F0F0] rounded-3xl w-full shadow-xl pointer-events-auto flex flex-col max-h-[90vh]"
